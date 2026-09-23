@@ -27,6 +27,8 @@ public class Bug {
     private String expectedResult;
     @Column(length = 2000)
     private String environment;
+    @Column(columnDefinition = "text")
+    private String relatedTaskUrl;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BugStatus status = BugStatus.NEW;

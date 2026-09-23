@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <property name="attachmentFilenameType" value="varchar" dbms="h2"/>
+    <property name="attachmentFilenameType" value="text"/>
+    <changeSet id="3-create-bug-attachment" author="bugpocket">
+        <createTable tableName="bug_attachment">
+            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="bug_id" type="bigint"><constraints nullable="false" foreignKeyName="fk_attachment_bug" references="bug(id)"/></column>
+            <column name="media_kind" type="varchar(10)"><constraints nullable="false"/></column>
+            <column name="file_type" type="varchar(10)"><constraints nullable="false"/></column>
+            <column name="content_type" type="varchar(100)"><constraints nullable="false"/></column>
+            <column name="size_bytes" type="bigint"><constraints nullable="false"/></column>
+            <column name="storage_key" type="varchar(36)"><constraints nullable="false" unique="true"/></column>
+            <column name="preview_key" type="varchar(36)"/>
+            <column name="original_filename" type="${attachmentFilenameType}"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex indexName="idx_attachment_bug" tableName="bug_attachment">
+            <column name="bug_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

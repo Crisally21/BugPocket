@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <!-- H2 maps Liquibase's generic text to CLOB; use its unbounded VARCHAR equivalent. -->
+    <property name="relatedTaskUrlType" value="varchar" dbms="h2"/>
+    <property name="relatedTaskUrlType" value="text"/>
+    <changeSet id="2-add-related-task-url" author="bugpocket">
+        <addColumn tableName="bug">
+            <column name="related_task_url" type="${relatedTaskUrlType}"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

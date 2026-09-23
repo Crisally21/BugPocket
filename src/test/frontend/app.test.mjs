@@ -243,3 +243,63 @@ test('UI creates, edits, changes status and filters against the running Spring a
     assert.equal(response.status, 200, asset + ' should be served');
   }
 });
+
+test('related task URL is submitted, normalized by the server and safely linked', async t => {
+  let saved;
+  let payload;
+  const { document, input, submit } = setup(t, { hash: '#/bugs/new', fetch: async (path, options) => {
+    if (options.method === 'POST') {
+      payload = JSON.parse(options.body);
+      saved = { ...bug, ...payload, relatedTaskUrl: 'https://tracker.company.local/TASK-123?q=%22' };
+      return reply(saved, 201);
+    }
+    return reply(saved);
+  }});
+  input('header', 'Со ссылкой');
+  input('relatedTaskUrl', 'tracker.company.local/TASK-123?q=%22');
+  submit('#bug-form');
+  await until(() => document.querySelector('.related-task-link'));
+  assert.equal(payload.relatedTaskUrl, 'tracker.company.local/TASK-123?q=%22');
+  const link = document.querySelector('.related-task-link');
+  assert.equal(link.getAttribute('href'), saved.relatedTaskUrl);
+  assert.equal(link.textContent, saved.relatedTaskUrl);
+  assert.equal(link.getAttribute('rel'), 'noopener noreferrer');
+});
+
+test('related URL editing preserves dirty state, displays backend error and clears URL', async t => {
+  let current = { ...bug, relatedTaskUrl: 'https://tracker.invalid/ONE' };
+  let fail = true;
+  let payload;
+  const { dom, document, input, submit } = setup(t, { hash: '#/bugs/1/edit', fetch: async (path, options) => {
+    if (options.method === 'PUT') {
+      payload = JSON.parse(options.body);
+      if (fail) return reply({ detail: 'Проверь поля', errors: { relatedTaskUrl: 'Некорректная ссылка' } }, 400);
+      current = { ...current, ...payload, relatedTaskUrl: payload.relatedTaskUrl || null };
+    }
+    return reply(current);
+  }});
+  await until(() => document.querySelector('#relatedTaskUrl'));
+  assert.equal(document.querySelector('#relatedTaskUrl').value, current.relatedTaskUrl);
+  input('relatedTaskUrl', 'invalid');
+  let prompted = false;
+  dom.window.confirm = () => { prompted = true; return false; };
+  dom.window.location.hash = '#/bugs';
+  await until(() => prompted);
+  assert.equal(document.querySelector('#relatedTaskUrl').value, 'invalid');
+  submit('#bug-form');
+  await until(() => document.querySelector('#relatedTaskUrl').getAttribute('aria-invalid') === 'true');
+  assert.equal(document.querySelector('#relatedTaskUrl-error').textContent, 'Некорректная ссылка');
+  fail = false;
+  input('relatedTaskUrl', '');
+  submit('#bug-form');
+  await until(() => document.querySelector('#status-form'));
+  assert.equal(payload.relatedTaskUrl, '');
+  assert.equal(document.querySelector('.related-task-link'), null);
+});
+
+test('unsafe related task scheme never becomes a clickable link', async t => {
+  const { document } = setup(t, { hash: '#/bugs/1', fetch: async () =>
+    reply({ ...bug, relatedTaskUrl: 'javascript:alert(1)' }) });
+  await until(() => document.querySelector('#status-form'));
+  assert.equal(document.querySelector('.related-task-link'), null);
+});

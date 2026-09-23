@@ -16,6 +16,13 @@ public class ApiExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
+    @ExceptionHandler(InvalidRelatedTaskUrlException.class)
+    public ProblemDetail invalidRelatedTaskUrl(InvalidRelatedTaskUrlException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Проверь поля запроса");
+        problem.setProperty("errors", Map.of("relatedTaskUrl", exception.getMessage()));
+        return problem;
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail validation(MethodArgumentNotValidException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Проверь поля запроса");

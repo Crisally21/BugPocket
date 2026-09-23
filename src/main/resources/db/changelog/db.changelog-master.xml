@@ -16,4 +16,6 @@
             <column name="updated_at" type="timestamp with time zone"><constraints nullable="false"/></column>
         </createTable>
     </changeSet>
+    <include file="2-add-related-task-url.xml" relativeToChangelogFile="true"/>
+    <include file="3-create-bug-attachment.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

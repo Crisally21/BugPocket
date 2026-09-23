@@ -1,6 +1,6 @@
 import {
   STATUSES, PRIORITIES, FIELDS, escapeHtml as esc, parseRoute,
-  listHash, validateBug, searchBugs, formatDate
+  listHash, validateBug, searchBugs, formatDate, safeRelatedTaskUrl
 } from './ui.js';
 
 const view = document.querySelector('#view');
@@ -204,6 +204,7 @@ function renderList(bugs, route) {
 }
 
 function renderDetail(bug) {
+  const taskUrl = safeRelatedTaskUrl(bug.relatedTaskUrl);
   view.innerHTML = breadcrumb('Баг #' + bug.id) +
     '<div class="page-heading detail-heading"><div><p class="eyebrow">Баг #' + bug.id + '</p><h1>' + esc(bug.header) + '</h1></div>' +
     '<div class="heading-actions"><a class="btn" href="#/bugs/' + bug.id + '/edit">Редактировать</a></div></div>' +
@@ -211,6 +212,9 @@ function renderDetail(bug) {
     FIELDS.filter(field => field.name !== 'header').map(field =>
       '<section class="detail-section"><h2>' + field.label + '</h2><p class="detail-text' + (bug[field.name] ? '' : ' not-specified') + '">' +
       esc(bug[field.name] || 'Не указано') + '</p></section>').join('') +
+    '<section class="detail-section"><h2>Связанная задача</h2>' +
+    (taskUrl ? '<a class="related-task-link" href="' + esc(taskUrl) + '" target="_blank" rel="noopener noreferrer">' +
+      esc(taskUrl) + '</a>' : '<p class="not-specified">Не указано</p>') + '</section>' +
     '</article><aside class="panel detail-aside"><h2>Детали бага</h2>' + badge(bug.status) +
     '<form id="status-form"><fieldset><label for="bug-status">Изменить статус</label><select id="bug-status" name="status">' + options(STATUSES, bug.status) +
     '</select><button class="btn btn-primary" type="submit" disabled>Сохранить статус</button></fieldset><p class="field-error" role="alert" id="status-error" hidden></p></form>' +
@@ -283,6 +287,11 @@ function renderForm(bug) {
     options(PRIORITIES, values.priority) + '</select><p class="field-error" id="priority-error" hidden></p></div>' +
     '<h2 class="form-section-title">Как воспроизвести</h2>' + fieldHtml('steps') +
     '<div class="form-row">' + fieldHtml('actualResult') + fieldHtml('expectedResult') + '</div>' + fieldHtml('environment') +
+    '<div class="field"><label for="relatedTaskUrl">Связанная задача</label>' +
+    '<input type="text" inputmode="url" id="relatedTaskUrl" name="relatedTaskUrl" value="' + esc(values.relatedTaskUrl) +
+    '" aria-describedby="relatedTaskUrl-error relatedTaskUrl-hint" placeholder="tracker.company.local/TASK-123">' +
+    '<p class="field-error" id="relatedTaskUrl-error" hidden></p>' +
+    '<p class="field-hint" id="relatedTaskUrl-hint">Необязательно. Если схема не указана, добавим https://.</p></div>' +
     '<div class="form-actions"><a class="btn btn-quiet" href="' + esc(returnHash) + '">Отмена</a><button class="btn btn-primary" type="submit">' +
     (editing ? 'Сохранить изменения' : 'Создать баг') + '</button></div></fieldset></form>' +
     '<aside class="form-aside"><p class="aside-label">Небольшая подсказка</p><h2>Хороший баг-репорт</h2><p>Одна запись — одна ошибка. Так проще следить за исправлением и ничего не потерять.</p>' +
@@ -295,7 +304,7 @@ function renderForm(bug) {
   const readValues = () => Object.fromEntries(new FormData(form));
   const initialValues = JSON.stringify(readValues());
   function showFields(errors) {
-    for (const name of [...FIELDS.map(field => field.name), 'priority']) {
+    for (const name of [...FIELDS.map(field => field.name), 'priority', 'relatedTaskUrl']) {
       const input = form.elements.namedItem(name);
       const message = form.querySelector('#' + name + '-error');
       const error = errors[name];

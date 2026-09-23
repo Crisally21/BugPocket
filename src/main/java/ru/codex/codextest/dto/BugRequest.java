@@ -9,5 +9,6 @@ public record BugRequest(
         @Size(max = 10000) String actualResult,
         @Size(max = 10000) String expectedResult,
         @Size(max = 2000) String environment,
-        @NotNull(message = "Укажи приоритет") BugPriority priority) {
+        @NotNull(message = "Укажи приоритет") BugPriority priority,
+        String relatedTaskUrl) {
 }

@@ -75,3 +75,13 @@ export function formatDate(value) {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
   }).format(date);
 }
+
+export function safeRelatedTaskUrl(value) {
+  if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) return null;
+  try {
+    const url = new URL(value);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname ? value : null;
+  } catch {
+    return null;
+  }
+}

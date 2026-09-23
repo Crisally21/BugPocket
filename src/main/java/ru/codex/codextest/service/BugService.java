@@ -53,11 +53,13 @@ public class BugService {
     }
 
     private void apply(Bug bug, BugRequest request) {
+        String relatedTaskUrl = RelatedTaskUrlNormalizer.normalize(request.relatedTaskUrl());
         bug.setHeader(request.header().strip());
         bug.setSteps(request.steps());
         bug.setActualResult(request.actualResult());
         bug.setExpectedResult(request.expectedResult());
         bug.setEnvironment(request.environment());
         bug.setPriority(request.priority());
+        bug.setRelatedTaskUrl(relatedTaskUrl);
     }
 }
