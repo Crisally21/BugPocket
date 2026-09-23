@@ -1,0 +1,12 @@
+{
+  "name": "bugpocket-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:ui": "node --test src/test/frontend/*.test.mjs",
+    "check:ui": "node --check src/main/resources/static/app.js"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.1"
+  }
+}

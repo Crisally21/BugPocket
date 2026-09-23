@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#853c50">
+  <meta name="description" content="BugPocket — личный трекер багов. Записывай ошибки, следи за статусом и отмечай исправления.">
+  <title>BugPocket — учёт багов</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Рабочее пространство">
+      <a class="brand" href="#/bugs" aria-label="BugPocket — все баги">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M8 7h16v13a8 8 0 0 1-16 0V7Z" stroke="currentColor" stroke-width="2"/><path d="m12 14 4 4 4-4M12 3l2 4m6-4-2 4M4 13h4m16 0h4M4 21h4m16 0h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span>BugPocket<span class="brand-subtitle">Внимание к деталям</span></span>
+      </a>
+      <p class="nav-label">Рабочее пространство</p>
+      <nav class="navigation" aria-label="Баги">
+        <a href="#/bugs" data-nav="all"><span class="nav-symbol" aria-hidden="true">▦</span>Все баги</a>
+        <a href="#/bugs?status=NEW" data-nav="NEW"><span class="status-dot new" aria-hidden="true"></span>Новые</a>
+        <a href="#/bugs?status=IN_PROGRESS" data-nav="IN_PROGRESS"><span class="status-dot progress" aria-hidden="true"></span>В работе</a>
+        <a href="#/bugs?status=FIXED" data-nav="FIXED"><span class="status-dot fixed" aria-hidden="true"></span>Исправленные</a>
+      </nav>
+      <div class="sidebar-note"><span class="note-icon" aria-hidden="true">↗</span><strong>Каждое исправление<br>делает продукт лучше.</strong><p>Начни с одной маленькой ошибки.</p></div>
+      <div class="workspace"><span class="workspace-avatar" aria-hidden="true">Б</span><span>Личное пространство<small>BugPocket · первая версия</small></span></div>
+    </aside>
+    <div class="main-shell">
+      <header class="topbar"><span><span class="status-dot fixed" aria-hidden="true"></span>Личный трекер багов</span><span class="version">v0.1</span></header>
+      <main id="main" tabindex="-1">
+        <div id="view"><div class="loading" role="status"><span class="spinner" aria-hidden="true"></span>Загружаем BugPocket…</div></div>
+      </main>
+      <footer class="footer"><span>Замечай. Записывай. Исправляй.</span><span>Сделано для маленьких шагов вперёд.</span></footer>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><div class="noscript">Для работы BugPocket включи JavaScript в браузере.</div></noscript>
+</body>
+</html>

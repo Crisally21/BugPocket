@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <changeSet id="1-create-bug" author="bugpocket">
+        <createTable tableName="bug">
+            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="header" type="varchar(200)"><constraints nullable="false"/></column>
+            <column name="steps" type="varchar(10000)"/>
+            <column name="actual_result" type="varchar(10000)"/>
+            <column name="expected_result" type="varchar(10000)"/>
+            <column name="environment" type="varchar(2000)"/>
+            <column name="status" type="varchar(20)" defaultValue="NEW"><constraints nullable="false"/></column>
+            <column name="priority" type="varchar(20)" defaultValue="MEDIUM"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+            <column name="updated_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
