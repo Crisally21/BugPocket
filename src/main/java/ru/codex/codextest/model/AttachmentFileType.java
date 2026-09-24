@@ -14,4 +14,23 @@ public enum AttachmentFileType {
 
         }
     }
+
+    public String getContentType() {
+        switch (this) {
+            case PNG:
+                return "image/png";
+            case JPG, JPEG:
+                return "image/jpeg";
+            case MP4:
+                return "video/mp4";
+            case MOV:
+                return "video/quicktime";
+            case MKV:
+                return "video/x-matroska";
+            case AVI:
+                return "video/x-msvideo";
+            default:
+                return "video/webm";
+        }
+    }
 }
