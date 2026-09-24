@@ -1,5 +1,8 @@
 package ru.codex.codextest.model;
 
+
+import java.util.Locale;
+
 public enum AttachmentFileType {
     PNG, JPG, JPEG, MP4, MOV, MKV, AVI, WEBM;
 
@@ -32,5 +35,12 @@ public enum AttachmentFileType {
             default:
                 return "video/webm";
         }
+    }
+
+    public static AttachmentFileType fromExtension(String extension){
+        if (extension == null) {
+            throw new IllegalArgumentException("Расширение не указано");
+        }
+        return AttachmentFileType.valueOf(extension.toUpperCase(Locale.ROOT));
     }
 }
