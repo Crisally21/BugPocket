@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.codex.codextest.repository.AttachmentRepository;
 import ru.codex.codextest.repository.BugRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,9 +19,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class BugApiTests {
     @Autowired MockMvc mvc;
     @Autowired BugRepository repository;
+    @Autowired
+    AttachmentRepository attachmentRepository;
 
     @BeforeEach
     void clearDatabase() {
+        attachmentRepository.deleteAll();
         repository.deleteAll();
     }
 

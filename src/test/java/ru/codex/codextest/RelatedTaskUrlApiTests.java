@@ -15,6 +15,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.codex.codextest.repository.AttachmentRepository;
 import tools.jackson.databind.ObjectMapper;
 import ru.codex.codextest.model.Bug;
 import ru.codex.codextest.repository.BugRepository;
@@ -31,9 +32,12 @@ class RelatedTaskUrlApiTests {
     @Autowired ObjectMapper mapper;
     @Autowired BugRepository repository;
     @Autowired JdbcTemplate jdbc;
+    @Autowired
+    AttachmentRepository attachmentRepository;
 
     @BeforeEach
     void clearDatabase() {
+        attachmentRepository.deleteAll();
         repository.deleteAll();
     }
 
