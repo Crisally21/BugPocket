@@ -1,6 +1,8 @@
 package ru.codex.codextest;
 
 import java.util.UUID;
+
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,6 +18,8 @@ import static org.assertj.core.api.Assertions.*;
 class AttachmentRepositoryTests {
     @Autowired AttachmentRepository attachments;
     @Autowired BugRepository bugs;
+    @Autowired
+    EntityManager entityManager;
 
     private Bug bug() {
         Bug bug = new Bug();
@@ -38,11 +42,15 @@ class AttachmentRepositoryTests {
     @Test
     void metadataQueriesAndMutationsDoNotTouchParentTimestamp() {
         Bug parent = bug();
+        entityManager.clear();
+        parent = bugs.findById(parent.getId()).orElseThrow();
         var timestamp = parent.getUpdatedAt();
         assertThat(attachments.totalSizeByBugId(parent.getId())).isZero();
         assertThat(attachments.findByBugIdOrderByCreatedAtAscIdAsc(parent.getId())).isEmpty();
         BugAttachment first = attachment(parent.getId(), 10);
         BugAttachment second = attachment(parent.getId(), 20);
+        entityManager.clear();
+        assertThat(bugs.findById(parent.getId()).orElseThrow().getUpdatedAt()).isEqualTo(timestamp);
         assertThat(attachments.countByBugId(parent.getId())).isEqualTo(2);
         assertThat(attachments.totalSizeByBugId(parent.getId())).isEqualTo(30);
         assertThat(attachments.findByBugIdOrderByCreatedAtAscIdAsc(parent.getId()))
@@ -53,6 +61,7 @@ class AttachmentRepositoryTests {
         assertThat(attachments.findByIdAndBugId(first.getId(), bug().getId())).isEmpty();
         attachments.delete(first);
         attachments.flush();
+        entityManager.clear();
         assertThat(attachments.totalSizeByBugId(parent.getId())).isEqualTo(20);
         assertThat(bugs.findById(parent.getId()).orElseThrow().getUpdatedAt()).isEqualTo(timestamp);
     }
@@ -60,5 +69,27 @@ class AttachmentRepositoryTests {
     @Test
     void foreignKeyRejectsMissingBug() {
         assertThatThrownBy(() -> attachment(Long.MAX_VALUE, 1)).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void queriesReturnOnlyAttachmentsOfRequestedBug() {
+        Bug firstBug = bug();
+        Bug secondBug = bug();
+        BugAttachment firstAttachment = attachment(firstBug.getId(), 10);
+        BugAttachment secondAttachment = attachment(firstBug.getId(), 20);
+        BugAttachment thirdAttachment = attachment(secondBug.getId(), 100);
+        entityManager.clear();
+        assertThat(attachments.countByBugId(firstBug.getId())).isEqualTo(2);
+        assertThat(attachments.countByBugId(secondBug.getId())).isEqualTo(1);
+        assertThat(attachments.totalSizeByBugId(firstBug.getId())).isEqualTo(30);
+        assertThat(attachments.totalSizeByBugId(secondBug.getId())).isEqualTo(100);
+        assertThat(attachments.findByBugIdOrderByCreatedAtAscIdAsc(firstBug.getId()))
+                .extracting(BugAttachment::getId)
+                .containsExactly(firstAttachment.getId(), secondAttachment.getId());
+        assertThat(attachments.findByBugIdOrderByCreatedAtAscIdAsc(secondBug.getId()))
+                .extracting(BugAttachment::getId)
+                .containsExactly(thirdAttachment.getId());
+        assertThat(attachments.findByIdAndBugId(thirdAttachment.getId(), firstBug.getId())).isEmpty();
+
     }
 }
