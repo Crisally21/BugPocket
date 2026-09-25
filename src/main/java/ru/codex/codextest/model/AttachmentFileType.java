@@ -37,10 +37,22 @@ public enum AttachmentFileType {
         }
     }
 
-    public static AttachmentFileType fromExtension(String extension){
+    public static AttachmentFileType fromExtension(String extension) {
         if (extension == null) {
             throw new IllegalArgumentException("Расширение не указано");
         }
         return AttachmentFileType.valueOf(extension.toUpperCase(Locale.ROOT));
+    }
+
+    public static AttachmentFileType fromFilename(String filename) {
+        if (filename == null) {
+            throw new IllegalArgumentException("Название отсутствует");
+        }
+        int dotIndex = filename.lastIndexOf('.');
+        if (dotIndex == -1 || dotIndex == filename.length() - 1) {
+            throw new IllegalArgumentException("Некорректный файл");
+        }
+        String extension = filename.substring(dotIndex + 1);
+        return fromExtension(extension);
     }
 }
