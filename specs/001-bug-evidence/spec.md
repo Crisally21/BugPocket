@@ -82,17 +82,17 @@ The rule for a batch that fits the byte limit but exceeds the remaining attachme
 
 ### FR-03. Per-file size limit
 
-The size of one attachment must be less than or equal to 25 MB.
+The size of one attachment must be less than or equal to 25 MB (25,000,000 bytes).
 
 A file whose size is exactly 25 MB is valid, provided the total attachment-size limit is also satisfied.
 
 ### FR-04. Total attachment-size limit
 
-The total size of all attachments associated with one bug must be less than or equal to 25 MB.
+The total size of all attachments associated with one bug must be less than or equal to 25 MB (25,000,000 bytes).
 
 Before saving any attachment from a batch, the system must compare the total size of its eligible files with the remaining size capacity of that bug. If accepting the batch would exceed 25 MB in total, the ENTIRE batch must be rejected. No file from that batch may be saved, even if some files would fit individually. Existing attachments must remain unchanged.
 
-The user must receive a batch-level error explaining that the total attachment-size limit would be exceeded. Equality with the limit is allowed, provided the count limit is satisfied. The byte definition of MB remains Q-04.
+The user must receive a batch-level error explaining that the total attachment-size limit would be exceeded. Equality with the limit is allowed, provided the count limit is satisfied. Q-04 is closed: both limits use exactly 25,000,000 bytes.
 
 ### FR-05. Supported image formats
 
@@ -392,6 +392,8 @@ The following are not part of this feature unless added by a later specification
 
 ### Closed customer decisions
 
+- **Q-04 — CLOSED (2026-09-25):** 25 MB means exactly 25,000,000 bytes for both per-file and aggregate limits. Equality is allowed; exceeding the limit by even one byte is rejected. This decision no longer blocks implementation or acceptance tests.
+
 - **OQ-01 — CLOSED:** adding/deleting attachments does not change Bug.updatedAt (FR-18, AC-22). Related-task URL edits retain the existing update lifecycle (AC-23).
 - **OQ-02 — total-size decision CLOSED:** reject the entire eligible batch before saving any attachment when it exceeds remaining total-size capacity (FR-04/08, AC-20/21). No winner selection by size/order is needed. The former question also mentioned count overflow; that distinct unresolved case is Q-09 below.
 - **OQ-03 — CLOSED:** preserve the original filename for download, store it in metadata, and use an independent safe storage key (FR-10/19, AC-12/24).
@@ -400,7 +402,6 @@ The following are not part of this feature unless added by a later specification
 
 These questions do not reopen the decisions above and block only the affected behavior.
 
-- **Q-04 — Exact byte boundary:** does 25 MB mean 25,000,000 or 26,214,400 bytes? Use one confirmed value for per-file and aggregate limits. Needed before boundary implementation/acceptance tests.
 - **Q-09 — Batch count overflow:** if the batch fits the remaining byte capacity but exceeds the remaining slots out of 10 attachments, should the whole batch be rejected or a subset accepted? If a subset, which files? For example, a bug has 9 attachments and two valid small files are submitted. The customer decision about total size does not answer this case.
 - **Q-06 — Preview failure for otherwise valid video:** if a supported valid video cannot obtain its required preview because generation fails, should the attachment be rejected with an individual error or retained with an explicit preview-error/retry state? This is user-visible lifecycle behavior, not a request to choose a decoding tool. A generic icon does not meet FR-09. The implementation must first try to satisfy all required formats; it must not silently narrow the supported formats/codecs to evade this question.
 

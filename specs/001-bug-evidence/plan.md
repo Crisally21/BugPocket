@@ -139,7 +139,7 @@ Authoritative business checks:
 - allowed video formats: MP4, MOV, MKV, AVI, WEBM;
 - reject the entire eligible batch when its combined size exceeds remaining total-size capacity, before saving any attachment from that batch (spec FR-04/08).
 
-Resolve spec Q-04 before choosing the exact byte constant. A rejected file does not consume quota. The unresolved count-overflow policy is Q-09; do not assume it follows the size-overflow policy.
+Spec Q-04 is closed: use exactly 25,000,000 bytes for both per-file and aggregate limits, with equality allowed. A rejected file does not consume quota. The unresolved count-overflow policy is Q-09; do not assume it follows the size-overflow policy.
 
 Do not trust only a browser-provided extension or `Content-Type` header when deciding whether a file is acceptable. The implementation should validate the actual file format using an appropriate server-side strategy.
 
@@ -432,8 +432,9 @@ The feature must extend BugPocket rather than require existing API clients to se
 
 Closed: OQ-01 (attachment mutations preserve updatedAt), OQ-02's total-size rule (whole-batch rejection before persistence), OQ-03 (original filename metadata/download and independent storage key). These are implementation requirements, not blockers.
 
+Q-04 is closed (2026-09-25): 25 MB is exactly 25,000,000 bytes for both limits; equality is allowed. AttachmentValidator implements the per-file size check. Aggregate admission, content validation and video preview remain separate implementation work.
+
 Remaining business questions are maintained only in spec §9:
-- Q-04: exact bytes represented by 25 MB;
 - Q-09: count overflow when bytes fit;
 - Q-06: reject or retain an otherwise valid video if preview generation fails.
 
