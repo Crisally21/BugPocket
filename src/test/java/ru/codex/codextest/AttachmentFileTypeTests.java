@@ -26,4 +26,11 @@ public class AttachmentFileTypeTests {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Некорректный файл");
     }
+
+    @Test
+    void fromFileNameExceptionTochka() {
+        assertThatThrownBy(() -> AttachmentFileType.fromFilename("picture."))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Некорректный файл");
+    }
 }
