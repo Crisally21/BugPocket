@@ -2,6 +2,7 @@ package ru.codex.codextest;
 
 import org.junit.jupiter.api.Test;
 import ru.codex.codextest.model.AttachmentFileType;
+import ru.codex.codextest.model.AttachmentMediaKind;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,5 +45,11 @@ public class AttachmentFileTypeTests {
     void getContentTypeTestJpeg() {
         assertThat(AttachmentFileType.JPG.getContentType())
                 .isEqualTo("image/jpeg");
+    }
+
+    @Test
+    void getMediaKindTestImage() {
+        assertThat(AttachmentFileType.JPG.getMediaKind())
+                .isEqualTo(AttachmentMediaKind.IMAGE);
     }
 }
