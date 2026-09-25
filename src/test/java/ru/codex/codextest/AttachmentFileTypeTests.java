@@ -33,4 +33,10 @@ public class AttachmentFileTypeTests {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Некорректный файл");
     }
+
+    @Test
+    void fromExtensionNameInvalidName() {
+        assertThatThrownBy(() -> AttachmentFileType.fromExtension("txt"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }
