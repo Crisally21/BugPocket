@@ -1,16 +1,16 @@
-# Implementation Plan: Bug Attachments and Related Task Link
+# План реализации: вложения к багам и ссылка на связанную задачу
 
-## 1. Purpose
+## 1. Назначение
 
-This document describes the proposed technical implementation for `spec.md` in the current BugPocket codebase.
+Документ описывает предлагаемую техническую реализацию `spec.md` в текущем проекте BugPocket.
 
-The plan may define technical choices, but it must not resolve business behavior listed as an Open Question in `spec.md`.
+План может определять технические решения, но не должен решать бизнес-вопросы, оставленные открытыми в `spec.md`.
 
 ---
 
-## 2. Existing Architecture
+## 2. Существующая архитектура
 
-The current BugPocket application uses:
+Текущее приложение BugPocket использует:
 
 - Java 17;
 - Spring Boot MVC;
@@ -18,426 +18,427 @@ The current BugPocket application uses:
 - PostgreSQL;
 - Liquibase;
 - Bean Validation;
-- static HTML/CSS/JavaScript served by Spring, with client-side rendering;
-- JSON-based create/update operations for bugs;
-- MockMvc/H2 backend tests;
-- JavaScript frontend tests.
+- статические HTML/CSS/JavaScript, которые отдаёт Spring, с отрисовкой на стороне клиента;
+- операции создания и обновления багов через JSON;
+- тесты бэкенда на MockMvc/H2;
+- тесты фронтенда на JavaScript.
 
-The existing JSON API for creating and editing bugs should remain compatible.
+Совместимость существующего JSON API создания и редактирования багов должна сохраняться.
 
 ---
 
-## 3. Related Task URL
+## 3. URL связанной задачи
 
-### 3.1 Data model
+### 3.1 Модель данных
 
-Add a nullable `relatedTaskUrl` field to `Bug`.
+Добавить в `Bug` поле `relatedTaskUrl`, допускающее null.
 
-Add a nullable `related_task_url` column to the `bug` table through a new Liquibase changeSet.
+Добавить в таблицу `bug` колонку `related_task_url`, допускающую null, через новый changeSet Liquibase.
 
-Do not modify the already existing initial `1-create-bug` changeSet.
+Не изменять уже существующий начальный changeSet `1-create-bug`.
 
-### 3.2 DTOs
+### 3.2 DTO
 
-Add `relatedTaskUrl` to:
+Добавить `relatedTaskUrl` в:
 
 - `BugRequest`;
 - `BugResponse`.
 
-Requests that omit the field must continue to work. Preserve the current full-replacement semantics of PUT for editable fields: an omitted nullable relatedTaskUrl is treated as absent, just like existing nullable text fields; null/empty/blank clears it. Do not introduce PATCH-like retention semantics into PUT.
+Запросы без этого поля должны продолжать работать. Сохранить текущую семантику полной замены редактируемых полей в PUT: не переданный relatedTaskUrl, допускающий null, считается отсутствующим, как и существующие необязательные текстовые поля; null, пустая строка или строка из пробелов очищают его. Не переносить в PUT поведение PATCH с сохранением не переданных значений.
 
-### 3.3 Normalization and validation
+### 3.3 Нормализация и проверка
 
-Normalize and validate the related-task URL on the backend.
+Нормализовать и проверять URL связанной задачи на бэкенде.
 
-Required behavior:
+Требуемое поведение:
 
-- blank/empty input becomes no related-task URL;
-- an input already starting with `http://` remains HTTP;
-- an input already starting with `https://` remains HTTPS;
-- an input without either scheme receives `https://`;
-- the resulting value must be accepted as a valid HTTP/HTTPS URL;
-- invalid values result in a normal API validation error.
+- пустой ввод или строка из пробелов означают отсутствие URL связанной задачи;
+- значение, уже начинающееся с `http://`, остаётся HTTP;
+- значение, уже начинающееся с `https://`, остаётся HTTPS;
+- значение без этих схем получает `https://`;
+- итоговое значение должно быть корректным HTTP/HTTPS URL;
+- некорректные значения приводят к обычной ошибке валидации API.
 
-The frontend may perform equivalent validation for UX, but backend validation is authoritative. Parser selection and standards-based handling of URL syntax are technical choices. Explicit non-HTTP(S) schemes are invalid; do not disguise them by blindly prepending HTTPS. Do not contact the external task system or introduce an arbitrary business URL-length limit.
+Фронтенд может выполнять аналогичную проверку для удобства пользователя, но окончательное решение принимает бэкенд. Выбор парсера и обработка синтаксиса URL по стандартам — технические решения. Явно указанные схемы, отличные от HTTP(S), недопустимы; нельзя маскировать их безусловным добавлением HTTPS. Не обращаться к внешней системе задач и не вводить произвольный бизнес-лимит длины URL.
 
-Related-task URL edits go through BugService.apply and the existing Bug update lifecycle, including @PreUpdate. Attachment timestamp rules must not disable timestamps for ordinary bug edits.
+Редактирование URL связанной задачи проходит через BugService.apply и существующий жизненный цикл обновления Bug, включая @PreUpdate. Правила дат для вложений не должны отключать обновление дат при обычном редактировании бага.
 
 ---
 
-## 4. Attachment Domain Model
+## 4. Доменная модель вложения
 
-Create a new entity, for example `BugAttachment`.
+Создать новую сущность, например `BugAttachment`.
 
-The entity should store attachment metadata, not the file bytes themselves.
+Сущность должна хранить метаданные вложения, а не сами байты файла.
 
-Suggested fields:
+Предлагаемые поля:
 
 - `id`;
-- relation/reference to `Bug`;
-- `mediaKind` (`IMAGE` or `VIDEO`);
+- связь или ссылка на `Bug`;
+- `mediaKind` (`IMAGE` или `VIDEO`);
 - `fileType` (`PNG`, `JPG`, `JPEG`, `MP4`, `MOV`, `MKV`, `AVI`, `WEBM`);
 - `contentType`;
 - `sizeBytes`;
 - `storageKey`;
-- `originalFilename` (required metadata for download);
+- `originalFilename` (обязательные метаданные для скачивания);
 - `createdAt`.
 
-A reference to a derived video preview may be added as an implementation detail.
+В качестве детали реализации можно добавить ссылку на сгенерированное превью видео.
 
-OQ-03 is resolved: preserve the original uploaded filename in metadata and in the download response. Never use it as a filesystem path. Generate independent storage keys, including for equal original names. Encode Content-Disposition safely (including Unicode) rather than concatenating raw header values; do not expose storage keys or absolute paths in public metadata.
+OQ-03 решён: сохранять оригинальное имя загруженного файла в метаданных и в ответе скачивания. Никогда не использовать его как путь файловой системы. Генерировать независимые ключи хранения, в том числе для одинаковых оригинальных имён. Безопасно кодировать Content-Disposition, включая Unicode, вместо склеивания необработанных значений заголовка; не раскрывать ключи хранения и абсолютные пути в публичных метаданных.
 
-Attachment add/delete must not dirty or explicitly save the parent Bug just to update its timestamp. Avoid mapping/cascade or counter updates that trigger Bug.@PreUpdate. Do not restore a stale timestamp over a concurrent real bug edit.
+Добавление и удаление вложений не должны помечать родительский Bug как изменённый или явно сохранять его только ради обновления даты. Избегать отображения связей, каскадов или обновления счётчиков, которые вызывают Bug.@PreUpdate. Не восстанавливать устаревшую дату поверх результата параллельного реального редактирования бага.
 
-Create an `AttachmentRepository` using Spring Data JPA.
+Создать `AttachmentRepository` на Spring Data JPA.
 
-Repository operations will need to support at least:
+Репозиторий должен поддерживать как минимум:
 
-- listing attachments for a bug;
-- counting attachments for a bug;
-- calculating or retrieving total attachment size for a bug;
-- locating one attachment while verifying it belongs to the requested bug.
-
----
-
-## 5. File Storage
-
-### 5.1 Storage approach
-
-For the current local BugPocket application, use a filesystem-based storage abstraction rather than storing large binary files in PostgreSQL.
-
-Introduce a storage component such as `AttachmentStorage` with operations conceptually equivalent to:
-
-- store file;
-- open/read file;
-- delete file.
-
-### 5.2 Storage key
-
-Physical files must be stored under generated internal storage keys rather than directly using a user-provided filename as a filesystem path.
-
-The configured storage root must be the only directory accessible through this component; path traversal outside the storage root must be prevented.
-
-### 5.3 Configuration
-
-Add a configurable attachment storage root in application configuration.
-
-Tests must use a temporary directory instead of the developer's real attachment directory.
+- получение списка вложений бага;
+- подсчёт вложений бага;
+- расчёт или получение суммарного размера вложений бага;
+- поиск одного вложения с проверкой его принадлежности запрошенному багу.
 
 ---
 
-## 6. Attachment Validation
+## 5. Файловое хранилище
 
-Create attachment-validation logic in the backend service layer.
+### 5.1 Подход к хранению
 
-Authoritative business checks:
+Для текущего локального приложения BugPocket использовать абстракцию хранилища на файловой системе, а не хранить большие бинарные файлы в PostgreSQL.
 
-- at most 10 attachments per bug;
-- each file size <= 25 MB;
-- total attachment size per bug <= 25 MB;
-- allowed image formats: PNG, JPG, JPEG;
-- allowed video formats: MP4, MOV, MKV, AVI, WEBM;
-- reject the entire eligible batch when its combined size exceeds remaining total-size capacity, before saving any attachment from that batch (spec FR-04/08).
+Добавить компонент хранилища, например `AttachmentStorage`, с операциями:
 
-Spec Q-04 is closed: use exactly 25,000,000 bytes for both per-file and aggregate limits, with equality allowed. A rejected file does not consume quota. The unresolved count-overflow policy is Q-09; do not assume it follows the size-overflow policy.
+- сохранить файл;
+- открыть или прочитать файл;
+- удалить файл.
 
-Do not trust only a browser-provided extension or `Content-Type` header when deciding whether a file is acceptable. The implementation should validate the actual file format using an appropriate server-side strategy.
+### 5.2 Ключ хранения
 
-The exact library/strategy may be chosen during implementation, but it must support the formats required by `spec.md`.
+Физические файлы должны храниться под сгенерированными внутренними ключами; нельзя напрямую использовать переданное пользователем имя файла как путь файловой системы.
+
+Настроенный корневой каталог хранилища должен быть единственным каталогом, доступным через этот компонент; необходимо предотвращать выход за его пределы через манипуляции путём.
+
+### 5.3 Конфигурация
+
+Добавить настройку корневого каталога хранилища вложений в конфигурацию приложения.
+
+Тесты должны использовать временный каталог, а не реальный каталог вложений разработчика.
 
 ---
 
-## 7. Attachment API
+## 6. Проверка вложений
 
-Keep attachment operations separate from the existing JSON bug create/update API.
+Реализовать проверку вложений в сервисном слое бэкенда.
 
-Proposed endpoints:
+Обязательные бизнес-проверки:
+
+- не более 10 вложений на баг;
+- размер каждого файла <= 25 MB;
+- суммарный размер вложений бага <= 25 MB;
+- допустимые форматы изображений: PNG, JPG, JPEG;
+- допустимые форматы видео: MP4, MOV, MKV, AVI, WEBM;
+- отклонение всего допустимого пакета, если его общий размер превышает оставшуюся ёмкость по суммарному размеру, до сохранения любого вложения из этого пакета (FR-04/08 спецификации).
+
+Q-04 спецификации закрыт: использовать ровно 25 000 000 байт для ограничения одного файла и суммарного размера; равенство допускается. Отклонённый файл не расходует квоту. Нерешённое правило превышения количества — Q-09; нельзя считать, что оно совпадает с правилом превышения размера.
+
+При принятии файла нельзя доверять только расширению или заголовку `Content-Type`, переданным браузером. Реализация должна проверять фактический формат файла подходящим способом на сервере.
+
+Конкретную библиотеку или способ можно выбрать при реализации, но они должны поддерживать форматы, требуемые в `spec.md`.
+
+---
+
+## 7. API вложений
+
+Сохранить операции вложений отдельно от существующего JSON API создания и обновления багов.
+
+Предлагаемые эндпоинты:
 
 - `GET /api/bugs/{bugId}/attachments`
-  - list attachment metadata for a bug;
+  - получить список метаданных вложений бага;
 
 - `POST /api/bugs/{bugId}/attachments`
-  - accept `multipart/form-data` containing one or more files;
-  - validate each file and collect eligible files plus individual errors;
-  - check the whole eligible batch against the remaining total-size capacity before persistence;
-  - reject the whole batch on aggregate overflow with a batch-level error and zero saved attachments;
-  - otherwise persist eligible files under the count policy and return accepted items plus per-file errors;
+  - принять `multipart/form-data` с одним или несколькими файлами;
+  - проверить каждый файл и собрать допустимые файлы и отдельные ошибки;
+  - до сохранения проверить весь допустимый пакет на оставшуюся ёмкость по суммарному размеру;
+  - при превышении суммарного размера отклонить весь пакет с общей ошибкой и без сохранения вложений;
+  - иначе сохранить допустимые файлы согласно правилу количества и вернуть принятые вложения вместе с пофайловыми ошибками;
 
 - `GET /api/bugs/{bugId}/attachments/{attachmentId}/content`
-  - return the original image for an image attachment, or a generated still image for a video attachment; use the MIME of the returned preview, not the original video's MIME;
+  - вернуть оригинальное изображение для вложения-изображения или сгенерированный кадр для видео; использовать MIME-тип возвращаемого превью, а не оригинального видео;
 
 - `GET /api/bugs/{bugId}/attachments/{attachmentId}/download`
-  - return original attachment bytes with the original uploaded filename in Content-Disposition;
+  - вернуть оригинальные байты вложения с оригинальным именем загруженного файла в Content-Disposition;
 
 - `DELETE /api/bugs/{bugId}/attachments/{attachmentId}`
-  - remove the attachment and its stored file.
+  - удалить вложение и сохранённый файл.
 
-The exact response DTO names are implementation details, but responses must allow the frontend to distinguish accepted files from rejected files in a partial-success upload.
-
----
-
-## 8. Create-Bug Flow With Attachments
-
-Do not convert the existing `POST /api/bugs` JSON contract to multipart solely because this feature adds attachments.
-
-Frontend flow:
-
-1. validate the bug form;
-2. create the bug using the existing JSON API;
-3. obtain the new bug ID;
-4. if files were selected, upload them through the attachment API;
-5. show any per-file errors or whole-batch size error without deleting the already created bug or any successfully accepted attachments;
-6. navigate to the created bug/detail view.
-
-This preserves backward compatibility with the current API. Retain upload results across navigation so errors remain visible in the detail view. After a successful JSON POST, an upload retry must use that bug ID instead of creating another bug. Selected File objects must stay out of the JSON bug DTO.
+Конкретные имена DTO ответа — детали реализации, но ответы должны позволять фронтенду различать принятые и отклонённые файлы при частичном успехе загрузки.
 
 ---
 
-## 9. Existing-Bug Flow
+## 8. Создание бага с вложениями
 
-On an existing bug page, the frontend must be able to:
+Не переводить существующий JSON-контракт `POST /api/bugs` на multipart только из-за добавления вложений.
 
-- load attachment metadata;
-- display previews;
-- add more files while limits allow;
-- download an attachment;
-- delete an attachment.
+Последовательность действий фронтенда:
 
-The related-task URL should be editable through the existing bug edit flow.
+1. Проверить форму бага.
+2. Создать баг через существующий JSON API.
+3. Получить ID нового бага.
+4. Если файлы выбраны, загрузить их через API вложений.
+5. Показать пофайловые ошибки или ошибку размера всего пакета, не удаляя уже созданный баг или успешно принятые вложения.
+6. Перейти в карточку созданного бага.
 
----
-
-## 10. Preview Strategy
-
-### 10.1 Images
-
-For image attachments, the frontend can display a scaled preview using attachment content returned by the backend.
-
-A separate server-generated thumbnail is not required for the initial image implementation unless performance testing demonstrates a need.
-
-### 10.2 Videos
-
-The specification requires a preview for all supported video formats, including formats that browsers do not uniformly preview/play natively.
-
-Therefore the implementation should not rely exclusively on `<video>` native playback for preview generation.
-
-Introduce a video-preview abstraction, for example `VideoPreviewGenerator`.
-
-Preferred technical direction:
-
-- generate a still preview frame server-side;
-- store or cache the generated preview separately from the original video;
-- serve the generated image to the frontend for the attachment card.
-
-FFmpeg is a likely implementation tool because it supports the required containers/codecs broadly, but the implementation task must first verify how the runtime dependency will be supplied in the local development environment.
-
-If no supported video-decoding solution is available in the runtime, treat video-preview implementation as a technical blocker rather than silently replacing the required preview with a generic icon. Choosing and supplying the tool is an engineering task within T-05, not a customer business question. Check real fixtures for all five containers and do not silently narrow format support.
-
-For an otherwise valid video whose preview generation fails, the user-visible retain/reject lifecycle is still spec Q-06. Keep this separate from choosing a library. Apply the confirmed policy to per-file results; clean up abandoned originals and derived previews.
+Это сохраняет обратную совместимость текущего API. Сохранять результаты загрузки при навигации, чтобы ошибки оставались видимыми в карточке. После успешного JSON POST повторная загрузка должна использовать ID этого бага, а не создавать ещё один. Выбранные объекты File не должны попадать в JSON DTO бага.
 
 ---
 
-## 11. Batch admission and partial success
+## 9. Работа с существующим багом
 
-Use two distinct validation levels:
+На странице существующего бага фронтенд должен уметь:
 
-1. Identify per-file errors (unsupported format, per-file size, etc.) and eligible files. Associate results with an input index or client correlation ID so identical filenames remain distinguishable.
-2. Before persisting any attachment, compare existing bytes + the sum of all eligible file sizes with the per-bug limit. Rejected files do not enter this sum, matching the customer's image.png + video.mp4 + document.exe example.
-3. If the sum exceeds the limit, reject the ENTIRE batch. Return a total-size-limit error, no uploaded items, and applicable individual errors. Do not accept a subset, sort files to fit, or save until the limit is reached.
-4. If aggregate bytes fit (including equality), apply the count policy once Q-09 is resolved and persist eligible files. A file-specific rejection must not cancel other eligible files.
+- загружать метаданные вложений;
+- показывать превью;
+- добавлять файлы, пока позволяют ограничения;
+- скачивать вложение;
+- удалять вложение.
 
-The size decision must use a concurrency-safe view of quota before writes. If another upload has consumed capacity, re-evaluate the entire batch before persistence, not after some files have been committed.
-
-A successful partial result can contain uploaded items and an errors array. A whole-batch quota rejection can use ProblemDetail with a stable code such as ATTACHMENT_TOTAL_SIZE_EXCEEDED and an optional per-file errors extension. Exact status/DTO names are implementation details; the frontend must unambiguously distinguish batch rejection from partial success and form-field validation.
-
-This is whole-batch rejection for aggregate-size overflow, not a new requirement that every runtime I/O failure roll back the whole batch. Handle operational failures and compensation explicitly, preserving the specified per-file behavior. Do not silently resolve Q-06/Q-09.
+URL связанной задачи должен редактироваться через существующий сценарий редактирования бага.
 
 ---
 
-## 12. Database Migrations
+## 10. Подход к превью
 
-Add new Liquibase changeSets rather than editing the initial schema changeSet.
+### 10.1 Изображения
 
-Expected changes:
+Для изображений фронтенд может показывать уменьшенное превью, используя содержимое вложения, возвращённое бэкендом.
 
-1. add nullable `related_task_url` to `bug`;
-2. create `bug_attachment` with a foreign key to `bug` and original_filename metadata distinct from storage_key;
-3. add indexes only where query patterns justify them.
+На первом этапе отдельная миниатюра, сгенерированная сервером, не требуется, если тестирование производительности не покажет такую необходимость.
 
-The exact migration IDs are technical details, but they must be new and stable.
+### 10.2 Видео
 
----
+Спецификация требует превью всех поддерживаемых видеоформатов, включая форматы, для которых встроенный просмотр и воспроизведение поддерживаются браузерами неодинаково.
 
-## 13. Transaction and File Consistency
+Поэтому реализация не должна полагаться только на встроенное воспроизведение `<video>` для получения превью.
 
-A PostgreSQL transaction cannot roll back filesystem changes.
+Добавить абстракцию генерации превью видео, например `VideoPreviewGenerator`.
 
-The attachment service must therefore use compensation/error cleanup where necessary.
+Предпочтительный технический подход:
 
-Example failure case:
+- генерировать статичный кадр превью на сервере;
+- хранить или кешировать сгенерированное превью отдельно от оригинального видео;
+- отдавать полученное изображение фронтенду для карточки вложения.
 
-1. physical file is written successfully;
-2. database metadata insert fails;
-3. service removes the newly written physical file before propagating the error.
+Вероятный инструмент реализации — FFmpeg, поскольку он широко поддерживает нужные контейнеры и кодеки. Но в рамках задачи сначала необходимо проверить, как эта зависимость будет поставляться и запускаться в локальном окружении разработки.
 
-Deletion must also account for database/filesystem consistency.
+Если в среде выполнения нет подходящего средства декодирования видео, считать это техническим препятствием для реализации превью, а не молча заменять обязательное превью обычной иконкой. Выбор и предоставление инструмента — инженерная задача внутри T-05, а не бизнес-вопрос заказчику. Проверить реальные тестовые файлы всех пяти контейнеров и не сужать поддержку форматов без согласования.
 
-Do not assume `@Transactional` alone makes file operations atomic.
-
-Perform batch-size admission before durable attachment writes. Temporary multipart/staging files needed to inspect content are not accepted attachments and must be cleaned up on rejection. Do not implement overflow by saving some files and then undoing them.
-
-Choose a concurrency mechanism covering quota admission and persistence for the whole eligible batch: for example, serialize writers by bug with a database lock, or use an equivalent reservation strategy. Separate per-file commits must not let another batch invalidate an already partially persisted admission. The chosen strategy must preserve partial success without a shared rollback-only transaction losing earlier successes. Test on PostgreSQL, not only H2.
-
-Include commit-time failures, original/preview cleanup and failed deletion in the compensation design. Keep expensive decoding outside long database lock holds where possible. Locks/reservations must not alter Bug.updatedAt; avoid parent-row counter updates that invoke its callback. Implementation details belong to T-06, not separate customer questions.
+Для корректного видео, у которого не удалось сгенерировать превью, видимый пользователю выбор между сохранением и отклонением остаётся вопросом Q-06 спецификации. Не смешивать его с выбором библиотеки. Применять подтверждённое правило к пофайловым результатам; удалять оставшиеся ненужными оригиналы и сгенерированные превью.
 
 ---
 
-## 14. Multipart Configuration
+## 11. Допуск пакета к сохранению и частичный успех
 
-Configure Spring multipart limits so that requests satisfying the business limit can reach application validation.
+Использовать два отдельных уровня проверки:
 
-The HTTP multipart configuration must account for multipart overhead and multi-file requests.
+1. Определить пофайловые ошибки (неподдерживаемый формат, размер отдельного файла и т. п.) и допустимые файлы. Связать результаты с индексом во входном пакете или клиентским идентификатором, чтобы различать файлы с одинаковыми именами.
+2. До сохранения любого вложения сравнить сумму существующих байтов и размеров всех допустимых файлов с лимитом бага. Отклонённые файлы не входят в эту сумму, как в примере заказчика с image.png + video.mp4 + document.exe.
+3. Если сумма превышает лимит, отклонить ВЕСЬ пакет. Вернуть ошибку суммарного размера, пустой список загруженных вложений и применимые пофайловые ошибки. Не принимать часть пакета, не сортировать файлы ради подбора подходящих и не сохранять их по очереди до достижения лимита.
+4. Если сумма байтов помещается, включая равенство, применить правило количества после решения Q-09 и сохранить допустимые файлы. Отклонение отдельного файла не должно отменять другие допустимые файлы.
 
-The 25-MB per-file and 25-MB total-per-bug business limits must still be checked in application logic and must not depend solely on Spring's request-size configuration.
+Решение о размере должно опираться на состояние квоты, защищённое от конкурентных изменений, до записи файлов. Если другая загрузка уже израсходовала ёмкость, повторно проверить весь пакет до сохранения, а не после фиксации части файлов.
 
-A hard 25-MB request cap can discard an otherwise valid mixed batch before per-file handling. Select and test multipart/streaming handling against FR-04/08, including invalid files alongside valid ones and actual HTTP overhead. An infrastructure 413 is not proof of the required business batch check. Malformed or interrupted transport is a request-level error, not a successful per-file result. Do not introduce a new customer-defined batch-size/count limit as a shortcut; report a demonstrated technical limitation before changing business guarantees.
+Результат частичного успеха может содержать загруженные вложения и массив errors. Отклонение всего пакета по квоте может использовать ProblemDetail со стабильным кодом, например ATTACHMENT_TOTAL_SIZE_EXCEEDED, и необязательным расширением с пофайловыми ошибками. Конкретные статусы и имена DTO — детали реализации; фронтенд должен однозначно отличать отклонение пакета от частичного успеха и ошибок полей формы.
 
----
-
-## 15. Error Handling
-
-Extend the existing `ApiExceptionHandler`/ProblemDetail approach rather than introducing an unrelated error format.
-
-Expected error categories include:
-
-- bug not found;
-- attachment not found or not belonging to the specified bug;
-- unsupported file type;
-- file too large;
-- whole-batch total size limit exceeded (zero saved attachments);
-- attachment count limit exceeded;
-- storage failure;
-- invalid related-task URL.
-
-For a batch admitted by the total-size check, per-file business errors must be representable without turning successfully accepted files into failures. Whole-batch overflow is a separate outcome and must not be shown as partial success.
+Это правило отклонения всего пакета при превышении суммарного размера, а не новое требование откатывать весь пакет при любом сбое ввода-вывода. Явно обрабатывать сбои выполнения и компенсирующие действия, сохраняя заданное пофайловое поведение. Не решать Q-06/Q-09 без согласования.
 
 ---
 
-## 16. Frontend Changes
+## 12. Миграции базы данных
 
-Update the existing static frontend rather than introducing a new frontend framework.
+Добавлять новые changeSet Liquibase, а не изменять начальный changeSet схемы.
 
-Expected areas:
+Ожидаемые изменения:
 
-- add related-task URL input to create/edit form;
-- add attachment file picker to create form;
-- add attachment section to bug detail view;
-- add attachment upload on existing bug;
-- show image preview + file type;
-- show generated video preview + file type;
-- add download action;
-- add delete action;
-- display per-file validation/upload errors and a distinct whole-batch total-size error;
-- preserve original download filenames via the backend download response;
-- keep the displayed Bug.updatedAt unchanged for attachment-only operations;
-- preserve current dirty-form/saving protections.
+1. Добавить в `bug` колонку `related_task_url`, допускающую null.
+2. Создать `bug_attachment` с внешним ключом на `bug` и метаданными original_filename, отдельными от storage_key.
+3. Добавлять индексы только там, где они оправданы запросами.
 
-The frontend may validate file count/size/type early for UX, but backend validation remains authoritative. Do not split one selected batch into independent requests to bypass whole-batch rejection. Adapt api() to FormData and empty DELETE responses; keep selected files and upload results in explicit state. Preserve stale-response guards, dirty/saving protections and attachment rendering after status changes.
+Конкретные идентификаторы миграций — технические детали, но они должны быть новыми и стабильными.
 
 ---
 
-## 17. Testing Strategy
+## 13. Согласованность транзакций и файлов
 
-### 17.1 Related-task URL tests
+Транзакция PostgreSQL не может откатить изменения файловой системы.
 
-Test at minimum:
+Поэтому сервис вложений должен при необходимости выполнять компенсирующие действия и очистку после ошибок.
 
-- omitted URL;
-- explicit HTTPS URL;
-- explicit HTTP URL;
-- URL without scheme receives HTTPS;
-- replacing URL;
-- clearing URL;
-- invalid URL is rejected;
-- existing create/update behavior remains compatible.
+Пример сбоя:
 
-### 17.2 Attachment API tests
+1. Физический файл успешно записан.
+2. Вставка метаданных в БД завершается ошибкой.
+3. Сервис удаляет только что записанный физический файл, прежде чем передать ошибку дальше.
 
-Test at minimum:
+При удалении также нужно учитывать согласованность БД и файловой системы.
 
-- successful PNG/JPG/JPEG upload;
-- successful MP4/MOV/MKV/AVI/WEBM upload using representative valid fixture files;
-- unsupported type rejected;
-- exactly 25-MB valid boundary;
-- >25-MB file rejected;
-- total exactly 25 MB accepted;
-- total >25 MB: entire eligible batch rejected with no persisted originals/metadata/previews, even when individual files would fit;
-- eligible batch reaching the total limit exactly accepted;
-- invalid document.exe does not consume quota while eligible image.png + video.mp4 fit;
-- 10 attachments allowed;
-- 11th rejected;
-- partial-success batch;
-- list attachments;
-- preview content;
-- download original bytes with original filename, including Unicode and equal names on different attachments;
-- deletion;
-- missing bug -> 404;
-- attachment not belonging to specified bug is not exposed;
-- storage cleanup after metadata persistence/commit failure and failed deletion;
-- Bug.updatedAt unchanged after upload, partial success, rejected batch and deletion;
-- relatedTaskUrl edits retain the existing timestamp behavior;
-- concurrent uploads cannot exceed byte/count quota or admit only part of an overflowing batch;
-- migrations work on both a fresh database and an existing database without changing 1-create-bug.
+Нельзя считать, что одной аннотации `@Transactional` достаточно для атомарности файловых операций.
 
-### 17.3 Frontend tests
+Проверять размер пакета до постоянной записи вложений. Временные файлы multipart или промежуточного хранения, необходимые для анализа содержимого, не являются принятыми вложениями и должны очищаться при отклонении. Нельзя реализовывать обработку превышения через сохранение части файлов и последующую отмену.
 
-Test at minimum:
+Выбрать механизм управления конкурентным доступом, охватывающий проверку квоты и сохранение всего допустимого пакета: например, последовательно выполнять записи одного бага с помощью блокировки БД или использовать равнозначное резервирование. Отдельные фиксации транзакций по файлам не должны позволять другому пакету нарушить условия допуска уже частично сохранённого пакета. Выбранный подход должен сохранять частичный успех: общая транзакция, помеченная rollback-only, не должна уничтожать предыдущие успешные результаты. Проверять на PostgreSQL, а не только H2.
 
-- URL input presence and validation behavior;
-- attachment selection;
-- image preview rendering;
-- video preview rendering;
-- partial upload result rendering and whole-batch rejection rendering;
-- create JSON bug followed by upload, without losing errors or creating duplicate bugs on retry;
-- download action wiring;
-- delete action wiring;
-- existing bug create/edit/status behavior remains functional.
-
-### 17.4 Test storage
-
-Use a temporary filesystem directory for tests.
-
-Tests must not write into the developer's normal attachment storage directory. Clean attachment FK rows before bug rows in test setup. Use representative small media fixtures; generate valid boundary-size fixtures in temporary directories. Verify multipart limits with a real HTTP server, concurrency/upgrade on isolated PostgreSQL, and actual previews/downloads in a browser; jsdom alone does not prove rendering.
+При проектировании компенсации учитывать ошибки во время фиксации транзакции, очистку оригинала и превью, а также неудачное удаление. По возможности выполнять дорогое декодирование вне длительного удержания блокировок БД. Блокировки и резервирование не должны менять Bug.updatedAt; избегать обновления счётчиков в родительской строке, вызывающего её обработчик жизненного цикла. Детали реализации относятся к T-06, а не к отдельным вопросам заказчику.
 
 ---
 
-## 18. Compatibility Requirements
+## 14. Настройка multipart
 
-The following existing behavior must remain working:
+Настроить ограничения multipart в Spring так, чтобы запросы, удовлетворяющие бизнес-лимиту, доходили до проверки в приложении.
+
+Настройки HTTP multipart должны учитывать служебные данные multipart и запросы с несколькими файлами.
+
+Бизнес-лимиты 25 MB на один файл и 25 MB на все вложения бага всё равно должны проверяться логикой приложения и не зависеть только от настройки размера запроса в Spring.
+
+Жёсткий лимит запроса 25 MB может отклонить смешанный пакет с допустимыми файлами до пофайловой обработки. Выбрать и проверить multipart или потоковую обработку на соответствие FR-04/08, включая недопустимые файлы рядом с допустимыми и реальные служебные данные HTTP. Инфраструктурный ответ 413 не доказывает выполнение требуемой бизнес-проверки пакета. Повреждённая или прерванная передача — ошибка запроса, а не успешный пофайловый результат. Не вводить новый бизнес-лимит размера или количества файлов в пакете ради упрощения: прежде чем менять бизнес-гарантии, сообщить о подтверждённом техническом ограничении.
+
+---
+
+## 15. Обработка ошибок
+
+Расширять существующий подход `ApiExceptionHandler`/ProblemDetail, а не вводить несвязанный формат ошибок.
+
+Ожидаемые категории ошибок:
+
+- баг не найден;
+- вложение не найдено или не принадлежит указанному багу;
+- неподдерживаемый тип файла;
+- слишком большой файл;
+- превышен суммарный размер всего пакета (ни одно вложение не сохранено);
+- превышено количество вложений;
+- ошибка хранилища;
+- некорректный URL связанной задачи.
+
+Для пакета, прошедшего проверку суммарного размера, должна быть возможность представить пофайловые бизнес-ошибки, не превращая успешно принятые файлы в неудачные. Превышение размера всего пакета — отдельный исход, который нельзя показывать как частичный успех.
+
+---
+
+## 16. Изменения фронтенда
+
+Обновлять существующий статический фронтенд, не вводя новый фронтенд-фреймворк.
+
+Ожидаемые изменения:
+
+- добавить поле URL связанной задачи в форму создания и редактирования;
+- добавить выбор файлов вложений в форму создания;
+- добавить секцию вложений в карточку бага;
+- добавить загрузку вложений к существующему багу;
+- показывать превью изображения и тип файла;
+- показывать сгенерированное превью видео и тип файла;
+- добавить скачивание;
+- добавить удаление;
+- показывать пофайловые ошибки проверки и загрузки, а также отдельную ошибку суммарного размера всего пакета;
+- сохранять оригинальные имена скачиваемых файлов через ответ бэкенда;
+- оставлять отображаемый Bug.updatedAt без изменений при операциях только с вложениями;
+- сохранять текущую защиту несохранённых изменений формы и процесса сохранения.
+
+Фронтенд может заранее проверять количество, размер и тип файлов для удобства пользователя, но окончательную проверку выполняет бэкенд. Не разбивать один выбранный пакет на независимые запросы для обхода отклонения всего пакета. Адаптировать api() к FormData и пустым ответам DELETE; явно хранить в состоянии выбранные файлы и результаты загрузки. Сохранить защиту от устаревших ответов, защиту несохранённых изменений и процесса сохранения, а также отображение вложений после смены статуса.
+
+---
+
+## 17. Подход к тестированию
+
+### 17.1 Тесты URL связанной задачи
+
+Проверить как минимум:
+
+- URL не передан;
+- явно указан HTTPS URL;
+- явно указан HTTP URL;
+- URL без схемы получает HTTPS;
+- замена URL;
+- очистка URL;
+- отклонение некорректного URL;
+- сохранение совместимости существующих операций создания и обновления.
+
+### 17.2 Тесты API вложений
+
+Проверить как минимум:
+
+- успешную загрузку PNG/JPG/JPEG;
+- успешную загрузку MP4/MOV/MKV/AVI/WEBM на корректных тестовых файлах, представляющих эти форматы;
+- отклонение неподдерживаемого типа;
+- принятие корректного файла ровно на границе 25 MB;
+- отклонение файла >25 MB;
+- принятие суммарного размера ровно 25 MB;
+- при сумме >25 MB отклонение всего допустимого пакета без сохранённых оригиналов, метаданных и превью, даже если отдельные файлы помещаются;
+- принятие допустимого пакета, достигающего суммарного лимита ровно;
+- недопустимый document.exe не расходует квоту, если допустимые image.png + video.mp4 помещаются;
+- разрешены 10 вложений;
+- 11-е отклоняется;
+- пакет с частичным успехом;
+- получение списка вложений;
+- содержимое превью;
+- скачивание оригинальных байтов с оригинальным именем, включая Unicode и одинаковые имена разных вложений;
+- удаление;
+- отсутствующий баг -> 404;
+- вложение, не принадлежащее указанному багу, не выдаётся;
+- очистку хранилища после ошибки сохранения метаданных или фиксации транзакции и обработку неудачного удаления;
+- неизменность Bug.updatedAt после загрузки, частичного успеха, отклонения пакета и удаления;
+- сохранение существующего поведения дат при изменении relatedTaskUrl;
+- конкурентные загрузки не превышают квоты байтов и количества и не принимают лишь часть пакета, превышающего лимит;
+- миграции работают как на новой, так и на существующей БД без изменения 1-create-bug.
+
+### 17.3 Тесты фронтенда
+
+Проверить как минимум:
+
+- наличие поля URL и его проверку;
+- выбор вложений;
+- отображение превью изображения;
+- отображение превью видео;
+- отображение частичного успеха загрузки и отклонения всего пакета;
+- создание бага через JSON с последующей загрузкой без потери ошибок и без дублирования бага при повторной попытке;
+- подключение действия скачивания;
+- подключение действия удаления;
+- сохранение работоспособности создания, редактирования и смены статуса бага.
+
+### 17.4 Тестовое хранилище
+
+Использовать временный каталог файловой системы для тестов.
+
+Тесты не должны писать в обычный каталог вложений разработчика. При подготовке тестов удалять строки вложений с внешними ключами до строк багов. Использовать небольшие тестовые медиафайлы, представляющие поддерживаемые форматы; корректные файлы граничного размера генерировать во временных каталогах. Проверять лимиты multipart с настоящим HTTP-сервером, конкурентный доступ и обновление схемы на изолированной PostgreSQL, а реальные превью и скачивание — в браузере; одного jsdom недостаточно для подтверждения визуального отображения.
+
+---
+
+## 18. Требования совместимости
+
+Следующее существующее поведение должно продолжать работать:
 
 - `GET /api/bugs`;
 - `GET /api/bugs/{id}`;
-- `POST /api/bugs` with existing fields only;
-- `PUT /api/bugs/{id}` with existing fields only;
+- `POST /api/bugs` только с существующими полями;
+- `PUT /api/bugs/{id}` только с существующими полями;
 - `PATCH /api/bugs/{id}/status`;
-- current filters;
-- current status and priority rules;
-- current validation/error conventions unless explicitly extended.
+- текущие фильтры;
+- текущие правила статуса и приоритета;
+- текущие соглашения о проверках и ошибках, если они не расширены явно.
 
-The feature must extend BugPocket rather than require existing API clients to send multipart data for ordinary bug creation/update.
+Возможность должна расширять BugPocket, не заставляя существующих клиентов API отправлять multipart при обычном создании или обновлении бага.
 
 ---
 
-## 19. Decisions, remaining questions and execution boundary
+## 19. Решения, оставшиеся вопросы и границы выполнения
 
-Closed: OQ-01 (attachment mutations preserve updatedAt), OQ-02's total-size rule (whole-batch rejection before persistence), OQ-03 (original filename metadata/download and independent storage key). These are implementation requirements, not blockers.
+Закрыты: OQ-01 (операции с вложениями сохраняют updatedAt), правило суммарного размера OQ-02 (отклонение всего пакета до сохранения), OQ-03 (оригинальное имя в метаданных и при скачивании, независимый ключ хранения). Это требования к реализации, а не препятствия для неё.
 
-Q-04 is closed (2026-09-25): 25 MB is exactly 25,000,000 bytes for both limits; equality is allowed. AttachmentValidator implements the per-file size check. Aggregate admission, content validation and video preview remain separate implementation work.
+Q-04 закрыт (2026-09-25): 25 MB — это ровно 25 000 000 байт для обоих лимитов; равенство допускается. AttachmentValidator реализует проверку размера одного файла. Допуск пакета по суммарному размеру, проверка содержимого и видеопревью остаются отдельными частями реализации.
 
-Remaining business questions are maintained only in spec §9:
-- Q-09: count overflow when bytes fit;
-- Q-06: reject or retain an otherwise valid video if preview generation fails.
+Оставшиеся бизнес-вопросы ведутся только в разделе 9 спецификации:
 
-They block only dependent behavior. Parser, locking, storage key, response shape and multipart implementation are engineering decisions within the relevant tasks. Earlier broad Q-05/Q-07/Q-08 are not customer blockers; preserve the existing full-update API semantics and specified business guarantees.
+- Q-09: превышение количества, когда байты помещаются;
+- Q-06: отклонять или сохранять корректное видео при сбое генерации превью.
 
-The implementation backlog is tasks.md (12 tasks). This documentation update does not start those tasks and does not authorize production code, tests, migrations, frontend or configuration changes.
+Они блокируют только зависящее от них поведение. Парсер, блокировки, ключ хранения, структура ответа и реализация multipart — инженерные решения в соответствующих задачах. Прежние общие вопросы Q-05/Q-07/Q-08 не требуют ответа заказчика для продолжения работы; необходимо сохранять существующую семантику полного обновления API и заданные бизнес-гарантии.
+
+Список задач реализации находится в tasks.md (12 задач). Это обновление документации не запускает эти задачи и не разрешает изменения рабочего кода, тестов, миграций, фронтенда или конфигурации.

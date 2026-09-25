@@ -1,110 +1,110 @@
-# Feature: Bug Attachments and Related Task Link
+# Возможность: вложения к багам и ссылка на связанную задачу
 
-## 1. Status
+## 1. Статус
 
-Updated after customer decisions on attachment timestamps, batch total-size overflow and original download filenames. Remaining business questions are listed in section 9.
+Документ обновлён после решений заказчика о датах изменения багов при работе с вложениями, превышении суммарного размера при пакетной загрузке и оригинальных именах скачиваемых файлов. Оставшиеся бизнес-вопросы перечислены в разделе 9.
 
-This specification contains only requirements agreed during clarification. Unresolved behavior is listed under **Open Questions** and must not be invented during implementation.
-
----
-
-## 2. Goal
-
-Allow BugPocket users to attach visual evidence to a bug in the form of screenshots and videos, and optionally associate the bug with one external task by URL.
+Эта спецификация содержит только требования, согласованные при уточнении задачи. Нерешённые вопросы поведения перечислены в разделе **Оставшиеся бизнес-вопросы**; при реализации нельзя самостоятельно придумывать ответы на них.
 
 ---
 
-## 3. Scope
+## 2. Цель
 
-This feature includes:
-
-- adding image attachments to a bug;
-- adding video attachments to a bug;
-- selecting attachments while creating a bug;
-- adding attachments after the bug already exists;
-- displaying a preview for image attachments;
-- displaying a preview for video attachments;
-- displaying the attachment file type;
-- downloading an attachment;
-- deleting an attachment;
-- storing one optional related-task URL on a bug;
-- adding, changing and removing the related-task URL.
+Дать пользователям BugPocket возможность прикладывать к багу наглядные подтверждения в виде скриншотов и видео, а также при необходимости связывать баг с одной внешней задачей по URL.
 
 ---
 
-## 4. Definitions
+## 3. Область работ
 
-**Attachment** — an image or video file associated with a bug.
+Эта возможность включает:
 
-**Image attachment** — an attachment in PNG, JPG or JPEG format.
-
-**Video attachment** — an attachment in MP4, MOV, MKV, AVI or WEBM format.
-
-**Attachment preview** — a small visual representation of the attached image or video shown in the bug UI.
-
-**Upload batch** — the files submitted together in one upload operation. Per-file validation identifies eligible files and rejected files before any attachment from the batch is saved. For the aggregate size check, batch size is the sum of eligible file sizes; files rejected by per-file validation do not consume attachment capacity.
-
-**Related task URL** — an optional HTTP/HTTPS link to one external task related to the bug. The external system is not restricted to Jira or any other specific product.
-
----
-
-## 5. User Stories
-
-### US-01. Attach screenshot
-
-As a BugPocket user, I want to attach a screenshot to a bug so that I can visually demonstrate the problem.
-
-### US-02. Attach video
-
-As a BugPocket user, I want to attach a video to a bug so that I can demonstrate the sequence of actions and observed behavior.
-
-### US-03. Manage attachments
-
-As a BugPocket user, I want to add, download and delete attachments so that the evidence associated with a bug can be maintained over time.
-
-### US-04. Link related task
-
-As a BugPocket user, I want to add a related-task URL so that I can navigate from the bug to the external task associated with its resolution.
+- добавление изображений к багу;
+- добавление видео к багу;
+- выбор вложений при создании бага;
+- добавление вложений к уже существующему багу;
+- отображение превью изображений;
+- отображение превью видео;
+- отображение типа файла вложения;
+- скачивание вложения;
+- удаление вложения;
+- хранение одной необязательной ссылки на связанную задачу;
+- добавление, изменение и удаление ссылки на связанную задачу.
 
 ---
 
-## 6. Functional Requirements
+## 4. Определения
 
-### FR-01. Attachment creation timing
+**Вложение** — файл изображения или видео, связанный с багом.
 
-The system must allow attachments to be selected while creating a bug and must also allow attachments to be added after the bug has been created.
+**Изображение** — вложение в формате PNG, JPG или JPEG.
 
-### FR-02. Attachment count limit
+**Видео** — вложение в формате MP4, MOV, MKV, AVI или WEBM.
 
-A bug must have no more than 10 attachments at the same time.
+**Превью вложения** — небольшое визуальное представление приложенного изображения или видео, показанное в интерфейсе бага.
 
-The rule for a batch that fits the byte limit but exceeds the remaining attachment count is still open (Q-09). The total-size rule in FR-04 must not silently be extended to count overflow.
+**Пакет загрузки** — файлы, переданные вместе в одной операции загрузки. Пофайловая проверка определяет допустимые и отклонённые файлы до сохранения любого вложения из пакета. Для проверки суммарного размера размер пакета равен сумме размеров допустимых файлов; файлы, отклонённые пофайловой проверкой, не расходуют доступную ёмкость вложений.
 
-### FR-03. Per-file size limit
+**URL связанной задачи** — необязательная HTTP/HTTPS-ссылка на одну внешнюю задачу, связанную с багом. Внешняя система не ограничена Jira или каким-либо другим конкретным продуктом.
 
-The size of one attachment must be less than or equal to 25 MB (25,000,000 bytes).
+---
 
-A file whose size is exactly 25 MB is valid, provided the total attachment-size limit is also satisfied.
+## 5. Пользовательские истории
 
-### FR-04. Total attachment-size limit
+### US-01. Прикрепить скриншот
 
-The total size of all attachments associated with one bug must be less than or equal to 25 MB (25,000,000 bytes).
+Как пользователь BugPocket, я хочу прикрепить скриншот к багу, чтобы наглядно показать проблему.
 
-Before saving any attachment from a batch, the system must compare the total size of its eligible files with the remaining size capacity of that bug. If accepting the batch would exceed 25 MB in total, the ENTIRE batch must be rejected. No file from that batch may be saved, even if some files would fit individually. Existing attachments must remain unchanged.
+### US-02. Прикрепить видео
 
-The user must receive a batch-level error explaining that the total attachment-size limit would be exceeded. Equality with the limit is allowed, provided the count limit is satisfied. Q-04 is closed: both limits use exactly 25,000,000 bytes.
+Как пользователь BugPocket, я хочу прикрепить видео к багу, чтобы показать последовательность действий и наблюдаемое поведение.
 
-### FR-05. Supported image formats
+### US-03. Управлять вложениями
 
-The system must accept image attachments in these formats:
+Как пользователь BugPocket, я хочу добавлять, скачивать и удалять вложения, чтобы поддерживать подтверждения бага в актуальном состоянии.
+
+### US-04. Добавить ссылку на связанную задачу
+
+Как пользователь BugPocket, я хочу добавить URL связанной задачи, чтобы переходить из бага во внешнюю задачу, связанную с его исправлением.
+
+---
+
+## 6. Функциональные требования
+
+### FR-01. Когда можно добавлять вложения
+
+Система должна позволять выбирать вложения при создании бага, а также добавлять вложения после того, как баг уже создан.
+
+### FR-02. Ограничение количества вложений
+
+У одного бага одновременно должно быть не более 10 вложений.
+
+Правило для пакета, который помещается в лимит байтов, но превышает оставшееся количество вложений, пока не определено (Q-09). Нельзя без отдельного решения переносить правило суммарного размера из FR-04 на превышение количества.
+
+### FR-03. Ограничение размера одного файла
+
+Размер одного вложения должен быть не больше 25 MB (25 000 000 байт).
+
+Файл размером ровно 25 MB допустим, если одновременно соблюдается ограничение суммарного размера вложений.
+
+### FR-04. Ограничение суммарного размера вложений
+
+Суммарный размер всех вложений одного бага должен быть не больше 25 MB (25 000 000 байт).
+
+До сохранения любого вложения из пакета система должна сравнить сумму размеров его допустимых файлов с оставшейся доступной ёмкостью бага. Если принятие пакета приведёт к превышению 25 MB, необходимо отклонить ВЕСЬ пакет. Ни один файл из этого пакета нельзя сохранить, даже если отдельные файлы помещаются. Существующие вложения должны остаться без изменений.
+
+Пользователь должен получить ошибку всего пакета с объяснением превышения суммарного размера. Равенство лимиту допускается, если соблюдено ограничение количества. Q-04 закрыт: оба ограничения используют ровно 25 000 000 байт.
+
+### FR-05. Поддерживаемые форматы изображений
+
+Система должна принимать изображения следующих форматов:
 
 - PNG;
 - JPG;
 - JPEG.
 
-### FR-06. Supported video formats
+### FR-06. Поддерживаемые форматы видео
 
-The system must accept video attachments in these formats:
+Система должна принимать видео следующих форматов:
 
 - MP4;
 - MOV;
@@ -112,301 +112,301 @@ The system must accept video attachments in these formats:
 - AVI;
 - WEBM.
 
-### FR-07. Unsupported files
+### FR-07. Неподдерживаемые файлы
 
-Files outside the supported image and video formats must not be attached to a bug.
+Файлы, не относящиеся к поддерживаемым форматам изображений и видео, нельзя прикреплять к багу.
 
-For every rejected file, the user must receive an error for that file.
+Для каждого отклонённого файла пользователь должен получить отдельную ошибку.
 
-### FR-08. Partial success for multi-file upload
+### FR-08. Частичный успех при загрузке нескольких файлов
 
-When multiple files are submitted together, each file must be validated independently for file-specific requirements, including supported format and per-file size.
+Когда несколько файлов передаются вместе, каждый файл должен независимо проверяться на соответствие пофайловым требованиям, включая поддерживаемый формат и размер одного файла.
 
-If the eligible files collectively fit the remaining total-size and count capacity, they must be attached even when other files in the same submission are rejected. Each rejected file must have its own error. A file-specific rejection must not cancel the other eligible files.
+Если допустимые файлы вместе помещаются в оставшиеся лимиты суммарного размера и количества, их необходимо прикрепить, даже если другие файлы из той же загрузки отклонены. У каждого отклонённого файла должна быть своя ошибка. Отклонение отдельного файла не должно отменять другие допустимые файлы.
 
-FR-04 takes precedence when the eligible batch exceeds the remaining total-size capacity: reject the entire batch before saving any of its attachments, rather than choosing files that individually fit. This is a batch-level quota decision, not a replacement for per-file partial success. Count-overflow behavior remains Q-09.
+Если допустимая часть пакета превышает оставшуюся ёмкость по суммарному размеру, приоритет имеет FR-04: весь пакет отклоняется до сохранения любого вложения, без выбора файлов, которые помещаются по отдельности. Это решение о квоте всего пакета, а не замена правила частичного успеха по отдельным файлам. Поведение при превышении количества остаётся вопросом Q-09.
 
-Example: image.png and video.mp4 are valid; document.exe is unsupported. If image.png + video.mp4 fit the remaining capacity, save those two and return a per-file error for document.exe. If their combined size exceeds the remaining byte capacity, save none of the batch and return the total-size error; the unsupported-file error remains attributable to document.exe.
+Пример: image.png и video.mp4 допустимы, а document.exe не поддерживается. Если image.png + video.mp4 помещаются в оставшуюся ёмкость, нужно сохранить эти два файла и вернуть отдельную ошибку для document.exe. Если их общий размер превышает оставшуюся ёмкость в байтах, нельзя сохранять ни один файл пакета; нужно вернуть ошибку суммарного размера. Ошибка неподдерживаемого файла по-прежнему должна быть связана с document.exe.
 
-### FR-09. Attachment preview
+### FR-09. Превью вложений
 
-For an image attachment, the system must display a small image preview and its file type.
+Для изображения система должна показывать небольшое превью изображения и его тип файла.
 
-For a video attachment, the system must display a small video preview and its file type.
+Для видео система должна показывать небольшое превью видео и его тип файла.
 
-### FR-10. Attachment download
+### FR-10. Скачивание вложения
 
-The system must allow a user to download an existing attachment.
+Система должна позволять пользователю скачивать существующее вложение.
 
-The downloaded file must have the original uploaded filename and the original file contents. The system must retain the original filename as attachment metadata (FR-19).
+Скачанный файл должен иметь оригинальное имя загруженного файла и оригинальное содержимое. Система должна сохранять оригинальное имя в метаданных вложения (FR-19).
 
-### FR-11. Attachment deletion
+### FR-11. Удаление вложения
 
-The system must allow a user to delete an existing attachment from a bug.
+Система должна позволять пользователю удалять существующее вложение из бага.
 
-After successful deletion, the attachment must no longer be associated with that bug.
+После успешного удаления вложение больше не должно быть связано с этим багом.
 
-### FR-12. Related-task URL optionality
+### FR-12. Необязательность URL связанной задачи
 
-The related-task URL is optional.
+URL связанной задачи необязателен.
 
-A bug must be creatable and editable without a related-task URL.
+Баг должен создаваться и редактироваться без URL связанной задачи.
 
-### FR-13. Related-task URL cardinality
+### FR-13. Количество ссылок на связанную задачу
 
-A bug may contain at most one related-task URL.
+Баг может содержать не более одного URL связанной задачи.
 
-### FR-14. Related-task URL lifecycle
+### FR-14. Жизненный цикл URL связанной задачи
 
-A user must be able to:
+Пользователь должен иметь возможность:
 
-- set the URL while creating a bug;
-- set the URL after the bug has been created;
-- replace the existing URL;
-- remove the existing URL.
+- задать URL при создании бага;
+- задать URL после создания бага;
+- заменить существующий URL;
+- удалить существующий URL.
 
-### FR-15. Supported URL schemes
+### FR-15. Поддерживаемые схемы URL
 
-The stored related-task URL must use HTTP or HTTPS.
+Сохранённый URL связанной задачи должен использовать HTTP или HTTPS.
 
-The URL is not restricted to a specific external task-management system.
+URL не ограничен какой-либо конкретной внешней системой управления задачами.
 
-### FR-16. URL normalization
+### FR-16. Нормализация URL
 
-If the user enters a URL without `http://` or `https://`, the system must automatically prepend `https://` before storing it.
+Если пользователь вводит URL без `http://` или `https://`, система должна автоматически добавить `https://` перед сохранением.
 
-Example:
+Пример:
 
 `tracker.company.local/TASK-123`
 
-must be normalized to:
+должен быть приведён к виду:
 
 `https://tracker.company.local/TASK-123`
 
-### FR-17. Invalid URL
+### FR-17. Некорректный URL
 
-If the provided value cannot be accepted as a valid HTTP/HTTPS URL after normalization, the system must reject the value and show an input error to the user.
+Если после нормализации переданное значение нельзя принять как корректный HTTP/HTTPS URL, система должна отклонить его и показать пользователю ошибку ввода.
 
-### FR-18. Attachment operations do not change Bug.updatedAt
+### FR-18. Операции с вложениями не меняют Bug.updatedAt
 
-Adding or deleting attachments must not change the parent bug's updatedAt. This applies to successful uploads, partial-success uploads and deletions; rejected uploads must not change it either.
+Добавление и удаление вложений не должны менять updatedAt родительского бага. Это относится к успешной загрузке, загрузке с частичным успехом и удалению; отклонённые загрузки также не должны менять эту дату.
 
-Changing relatedTaskUrl through the existing bug editing flow may change updatedAt according to the existing Bug update lifecycle. Attachment operations must not undo timestamps legitimately changed by independent bug edits.
+Изменение relatedTaskUrl через существующий сценарий редактирования бага может менять updatedAt согласно существующему жизненному циклу обновления Bug. Операции с вложениями не должны отменять изменения дат, правомерно внесённые независимым редактированием бага.
 
-### FR-19. Original filename metadata and safe storage identity
+### FR-19. Оригинальное имя в метаданных и безопасный ключ хранения
 
-The original uploaded filename must be stored as attachment metadata and used for download. The original filename must not be used as a physical storage path.
+Оригинальное имя загруженного файла должно сохраняться в метаданных вложения и использоваться при скачивании. Оригинальное имя нельзя использовать как физический путь хранения.
 
-Physical storage must use a safe internal storage key independent of the original filename. Different attachments may have the same original filename without overwriting each other's files.
-
----
-
-## 7. Acceptance Criteria
-
-### AC-01. Add supported image
-
-**Given** a bug can accept another attachment  
-**And** adding the file does not make the total attachment size exceed 25 MB  
-**When** the user adds a valid PNG, JPG or JPEG file whose size is no more than 25 MB  
-**Then** the file is attached successfully.
-
-### AC-02. Add supported video
-
-**Given** a bug can accept another attachment  
-**And** adding the file does not make the total attachment size exceed 25 MB  
-**When** the user adds a valid MP4, MOV, MKV, AVI or WEBM file whose size is no more than 25 MB  
-**Then** the file is attached successfully.
-
-### AC-03. Exactly 25 MB
-
-**Given** the bug has no other attachments  
-**When** the user adds one supported file whose size is exactly 25 MB  
-**Then** the file is accepted.
-
-### AC-04. File larger than 25 MB
-
-**When** the user attempts to attach a supported file larger than 25 MB  
-**Then** the file is rejected  
-**And** the user receives an error for that file.
-
-### AC-05. Total size exactly 25 MB
-
-**Given** the bug already has attachments  
-**When** another valid file is added and the resulting total attachment size becomes exactly 25 MB  
-**Then** the file is accepted.
-
-### AC-06. Total size above 25 MB
-
-**Given** the bug already has attachments  
-**When** another file would make the resulting total attachment size greater than 25 MB  
-**Then** that file must not be attached  
-**And** the user receives an error for that file.
-
-### AC-07. Maximum attachment count
-
-**Given** a bug already has 10 attachments  
-**When** the user attempts to add another attachment  
-**Then** the new attachment is rejected  
-**And** the existing 10 attachments remain unchanged.
-
-### AC-08. Unsupported file type
-
-**When** the user attempts to attach an unsupported file type  
-**Then** that file is rejected  
-**And** the user receives an error for that file.
-
-### AC-09. Partial success
-
-**Given** the user submits three files together  
-**And** two files satisfy all file-specific requirements\
-**And** the two eligible files together fit the remaining total-size and count capacity\
-**And** one file violates a file-specific attachment requirement\
-**When** the upload is processed  
-**Then** the two valid files are attached  
-**And** the invalid file is not attached  
-**And** the user receives an error for the invalid file.
-
-### AC-10. Image preview
-
-**Given** a bug has a supported image attachment  
-**When** the user opens the bug  
-**Then** a small preview of the image is displayed  
-**And** the file type is displayed.
-
-### AC-11. Video preview
-
-**Given** a bug has a supported video attachment  
-**When** the user opens the bug  
-**Then** a small preview of the video is displayed  
-**And** the file type is displayed.
-
-### AC-12. Download attachment
-
-**Given** a bug has an attachment  
-**When** the user chooses to download it  
-**Then** the system provides the original file contents for download\
-**And** the download filename is the original uploaded filename.
-
-### AC-13. Delete attachment
-
-**Given** a bug has an attachment  
-**When** the user deletes that attachment  
-**Then** the attachment is no longer associated with the bug  
-**And** it is no longer shown among the bug attachments.
-
-### AC-14. Create bug without related-task URL
-
-**When** the user creates a valid bug without a related-task URL  
-**Then** the bug is created successfully.
-
-### AC-15. Store HTTP/HTTPS URL
-
-**When** the user provides a valid `http://` or `https://` related-task URL  
-**Then** the URL is stored for the bug.
-
-### AC-16. Automatically add HTTPS
-
-**When** the user provides a related-task URL without `http://` or `https://`  
-**And** the value can be accepted as a valid URL after normalization  
-**Then** the system prepends `https://`  
-**And** stores the normalized URL.
-
-### AC-17. Replace related-task URL
-
-**Given** the bug already has a related-task URL  
-**When** the user replaces it with another valid URL  
-**Then** the new URL is stored instead of the previous URL.
-
-### AC-18. Remove related-task URL
-
-**Given** the bug has a related-task URL  
-**When** the user removes the value and saves the bug  
-**Then** the bug is stored without a related-task URL.
-
-### AC-19. Invalid related-task URL
-
-**When** the user provides a value that remains invalid after URL normalization  
-**Then** the value is rejected  
-**And** the user receives an input error.
-
-### AC-20. Reject the entire batch on total-size overflow
-
-**Given** a bug has existing attachments
-**And** each of two new eligible files would individually fit the remaining byte capacity
-**But** their combined size exceeds that remaining capacity
-**When** the files are uploaded in one batch
-**Then** neither file is saved as an attachment
-**And** existing attachments remain unchanged
-**And** the user receives a batch-level total-size-limit error.
-
-The same zero-save result applies to an overflowing eligible batch containing additional files rejected by per-file validation. File-specific errors remain associated with their files.
-
-### AC-21. Batch reaches the total-size limit exactly
-
-**Given** a bug can accept all eligible files within the 10-attachment limit
-**When** existing attachment bytes plus the eligible batch bytes equal exactly 25 MB
-**Then** all eligible files are attached
-**And** any independently invalid files are rejected with their own errors.
-
-### AC-22. Attachment operations preserve updatedAt
-
-**Given** a bug has a recorded updatedAt and no concurrent edit to the bug itself
-**When** attachments are added or deleted, including a partial-success upload
-**Then** the bug's updatedAt is unchanged.
-
-A completely rejected batch must also leave updatedAt unchanged.
-
-### AC-23. Related-task URL uses the existing update lifecycle
-
-**Given** a bug has an existing related-task URL
-**When** the user changes the URL through ordinary bug editing
-**Then** the URL is updated
-**And** updatedAt follows the existing Bug update logic, without attachment-specific timestamp suppression.
-
-### AC-24. Original names are independent of storage paths
-
-**Given** two accepted attachments have the same original uploaded filename
-**When** they are stored and downloaded
-**Then** each retains its own original bytes and metadata filename
-**And** storage uses independent safe internal keys without overwriting either file
-**And** no user-provided filename determines a physical storage path.
+Для физического хранения необходимо использовать безопасный внутренний ключ, независимый от оригинального имени. Разные вложения могут иметь одинаковое оригинальное имя без перезаписи файлов друг друга.
 
 ---
 
-## 8. Out of Scope
+## 7. Критерии приёмки
 
-The following are not part of this feature unless added by a later specification:
+### AC-01. Добавление поддерживаемого изображения
 
-- more than one related-task URL per bug;
-- automatic integration with Jira, YouTrack, GitHub, GitLab or another external task system;
-- checking whether the external task actually exists;
-- fetching external task title, status or metadata;
-- editing the contents of an attachment inside BugPocket;
-- storing unsupported document/archive/executable formats as attachments;
-- user permissions or role-based access control for attachments;
-- cloud/object storage such as S3 or MinIO as a business requirement.
+**Дано:** к багу можно добавить ещё одно вложение.\
+**И:** добавление файла не приведёт к превышению суммарного размера 25 MB.\
+**Когда:** пользователь добавляет корректный PNG, JPG или JPEG размером не больше 25 MB.\
+**Тогда:** файл успешно прикрепляется.
+
+### AC-02. Добавление поддерживаемого видео
+
+**Дано:** к багу можно добавить ещё одно вложение.\
+**И:** добавление файла не приведёт к превышению суммарного размера 25 MB.\
+**Когда:** пользователь добавляет корректный MP4, MOV, MKV, AVI или WEBM размером не больше 25 MB.\
+**Тогда:** файл успешно прикрепляется.
+
+### AC-03. Размер ровно 25 MB
+
+**Дано:** у бага нет других вложений.\
+**Когда:** пользователь добавляет один файл поддерживаемого формата размером ровно 25 MB.\
+**Тогда:** файл принимается.
+
+### AC-04. Файл больше 25 MB
+
+**Когда:** пользователь пытается прикрепить файл поддерживаемого формата размером больше 25 MB.\
+**Тогда:** файл отклоняется.\
+**И:** пользователь получает ошибку для этого файла.
+
+### AC-05. Суммарный размер ровно 25 MB
+
+**Дано:** у бага уже есть вложения.\
+**Когда:** добавление ещё одного корректного файла делает суммарный размер вложений равным ровно 25 MB.\
+**Тогда:** файл принимается.
+
+### AC-06. Превышение суммарного размера 25 MB
+
+**Дано:** у бага уже есть вложения.\
+**Когда:** добавление ещё одного файла приведёт к суммарному размеру больше 25 MB.\
+**Тогда:** этот файл нельзя прикрепить.\
+**И:** пользователь получает ошибку для этого файла.
+
+### AC-07. Максимальное количество вложений
+
+**Дано:** у бага уже есть 10 вложений.\
+**Когда:** пользователь пытается добавить ещё одно вложение.\
+**Тогда:** новое вложение отклоняется.\
+**И:** существующие 10 вложений остаются без изменений.
+
+### AC-08. Неподдерживаемый тип файла
+
+**Когда:** пользователь пытается прикрепить файл неподдерживаемого типа.\
+**Тогда:** этот файл отклоняется.\
+**И:** пользователь получает ошибку для этого файла.
+
+### AC-09. Частичный успех
+
+**Дано:** пользователь передаёт три файла вместе.\
+**И:** два файла удовлетворяют всем пофайловым требованиям.\
+**И:** эти два допустимых файла вместе помещаются в оставшиеся лимиты суммарного размера и количества.\
+**И:** один файл нарушает пофайловое требование к вложению.\
+**Когда:** система обрабатывает загрузку.\
+**Тогда:** два корректных файла прикрепляются.\
+**И:** некорректный файл не прикрепляется.\
+**И:** пользователь получает ошибку для некорректного файла.
+
+### AC-10. Превью изображения
+
+**Дано:** у бага есть изображение поддерживаемого формата.\
+**Когда:** пользователь открывает баг.\
+**Тогда:** отображается небольшое превью изображения.\
+**И:** отображается тип файла.
+
+### AC-11. Превью видео
+
+**Дано:** у бага есть видео поддерживаемого формата.\
+**Когда:** пользователь открывает баг.\
+**Тогда:** отображается небольшое превью видео.\
+**И:** отображается тип файла.
+
+### AC-12. Скачивание вложения
+
+**Дано:** у бага есть вложение.\
+**Когда:** пользователь выбирает его скачивание.\
+**Тогда:** система предоставляет для скачивания оригинальное содержимое файла.\
+**И:** имя скачиваемого файла совпадает с оригинальным именем загруженного файла.
+
+### AC-13. Удаление вложения
+
+**Дано:** у бага есть вложение.\
+**Когда:** пользователь удаляет это вложение.\
+**Тогда:** вложение больше не связано с багом.\
+**И:** оно больше не отображается среди вложений бага.
+
+### AC-14. Создание бага без URL связанной задачи
+
+**Когда:** пользователь создаёт корректный баг без URL связанной задачи.\
+**Тогда:** баг успешно создаётся.
+
+### AC-15. Сохранение HTTP/HTTPS URL
+
+**Когда:** пользователь указывает корректный URL связанной задачи с `http://` или `https://`.\
+**Тогда:** URL сохраняется для бага.
+
+### AC-16. Автоматическое добавление HTTPS
+
+**Когда:** пользователь указывает URL связанной задачи без `http://` или `https://`.\
+**И:** после нормализации значение можно принять как корректный URL.\
+**Тогда:** система добавляет `https://`.\
+**И:** сохраняет нормализованный URL.
+
+### AC-17. Замена URL связанной задачи
+
+**Дано:** у бага уже есть URL связанной задачи.\
+**Когда:** пользователь заменяет его другим корректным URL.\
+**Тогда:** новый URL сохраняется вместо предыдущего.
+
+### AC-18. Удаление URL связанной задачи
+
+**Дано:** у бага есть URL связанной задачи.\
+**Когда:** пользователь удаляет значение и сохраняет баг.\
+**Тогда:** баг сохраняется без URL связанной задачи.
+
+### AC-19. Некорректный URL связанной задачи
+
+**Когда:** пользователь указывает значение, которое остаётся некорректным после нормализации URL.\
+**Тогда:** значение отклоняется.\
+**И:** пользователь получает ошибку ввода.
+
+### AC-20. Отклонение всего пакета при превышении суммарного размера
+
+**Дано:** у бага есть существующие вложения.\
+**И:** каждый из двух новых допустимых файлов по отдельности помещается в оставшуюся ёмкость в байтах.\
+**Но:** их общий размер превышает эту оставшуюся ёмкость.\
+**Когда:** файлы загружаются одним пакетом.\
+**Тогда:** ни один из двух файлов не сохраняется как вложение.\
+**И:** существующие вложения остаются без изменений.\
+**И:** пользователь получает ошибку превышения суммарного размера для всего пакета.
+
+Тот же результат без сохранения файлов применяется, если пакет с превышением размера допустимых файлов содержит дополнительные файлы, отклонённые пофайловой проверкой. Ошибки отдельных файлов остаются связанными с соответствующими файлами.
+
+### AC-21. Пакет достигает суммарного лимита ровно
+
+**Дано:** баг может принять все допустимые файлы в пределах ограничения 10 вложений.\
+**Когда:** сумма байтов существующих вложений и допустимой части пакета равна ровно 25 MB.\
+**Тогда:** все допустимые файлы прикрепляются.\
+**И:** файлы, не прошедшие независимую пофайловую проверку, отклоняются со своими ошибками.
+
+### AC-22. Операции с вложениями сохраняют updatedAt
+
+**Дано:** у бага записано значение updatedAt и сам баг одновременно не редактируется.\
+**Когда:** вложения добавляются или удаляются, в том числе при загрузке с частичным успехом.\
+**Тогда:** updatedAt бага остаётся без изменений.
+
+Полностью отклонённый пакет также должен оставлять updatedAt без изменений.
+
+### AC-23. URL связанной задачи использует существующий жизненный цикл обновления
+
+**Дано:** у бага есть URL связанной задачи.\
+**Когда:** пользователь меняет URL через обычное редактирование бага.\
+**Тогда:** URL обновляется.\
+**И:** updatedAt изменяется по существующей логике Bug, без подавления обновления даты, предназначенного для операций с вложениями.
+
+### AC-24. Оригинальные имена независимы от путей хранения
+
+**Дано:** два принятых вложения имеют одинаковое оригинальное имя загруженного файла.\
+**Когда:** они сохраняются и скачиваются.\
+**Тогда:** каждое сохраняет собственные оригинальные байты и имя файла в метаданных.\
+**И:** для хранения используются независимые безопасные внутренние ключи без перезаписи файлов.\
+**И:** ни одно переданное пользователем имя файла не определяет физический путь хранения.
 
 ---
 
-## 9. Decisions and remaining business questions
+## 8. За пределами задачи
 
-### Closed customer decisions
+Следующее не входит в эту возможность, если не будет добавлено последующей спецификацией:
 
-- **Q-04 — CLOSED (2026-09-25):** 25 MB means exactly 25,000,000 bytes for both per-file and aggregate limits. Equality is allowed; exceeding the limit by even one byte is rejected. This decision no longer blocks implementation or acceptance tests.
+- более одного URL связанной задачи на баг;
+- автоматическая интеграция с Jira, YouTrack, GitHub, GitLab или другой внешней системой задач;
+- проверка фактического существования внешней задачи;
+- получение названия, статуса или метаданных внешней задачи;
+- редактирование содержимого вложения внутри BugPocket;
+- хранение вложений в неподдерживаемых форматах документов, архивов или исполняемых файлов;
+- права пользователей или управление доступом к вложениям на основе ролей;
+- облачное или объектное хранилище, например S3 или MinIO, как бизнес-требование.
 
-- **OQ-01 — CLOSED:** adding/deleting attachments does not change Bug.updatedAt (FR-18, AC-22). Related-task URL edits retain the existing update lifecycle (AC-23).
-- **OQ-02 — total-size decision CLOSED:** reject the entire eligible batch before saving any attachment when it exceeds remaining total-size capacity (FR-04/08, AC-20/21). No winner selection by size/order is needed. The former question also mentioned count overflow; that distinct unresolved case is Q-09 below.
-- **OQ-03 — CLOSED:** preserve the original filename for download, store it in metadata, and use an independent safe storage key (FR-10/19, AC-12/24).
+---
 
-### Remaining business questions
+## 9. Решения и оставшиеся бизнес-вопросы
 
-These questions do not reopen the decisions above and block only the affected behavior.
+### Закрытые решения заказчика
 
-- **Q-09 — Batch count overflow:** if the batch fits the remaining byte capacity but exceeds the remaining slots out of 10 attachments, should the whole batch be rejected or a subset accepted? If a subset, which files? For example, a bug has 9 attachments and two valid small files are submitted. The customer decision about total size does not answer this case.
-- **Q-06 — Preview failure for otherwise valid video:** if a supported valid video cannot obtain its required preview because generation fails, should the attachment be rejected with an individual error or retained with an explicit preview-error/retry state? This is user-visible lifecycle behavior, not a request to choose a decoding tool. A generic icon does not meet FR-09. The implementation must first try to satisfy all required formats; it must not silently narrow the supported formats/codecs to evade this question.
+- **Q-04 — ЗАКРЫТ (2026-09-25):** 25 MB означает ровно 25 000 000 байт для одного файла и суммарного размера. Равенство допускается; превышение хотя бы на один байт отклоняется. Это решение больше не блокирует реализацию и приёмочные тесты.
 
-### Technical matters, not customer questions
+- **OQ-01 — ЗАКРЫТ:** добавление и удаление вложений не меняют Bug.updatedAt (FR-18, AC-22). Изменения URL связанной задачи сохраняют существующий жизненный цикл обновления (AC-23).
+- **OQ-02 — решение по суммарному размеру ЗАКРЫТО:** при превышении оставшейся ёмкости по суммарному размеру весь допустимый пакет отклоняется до сохранения любого вложения (FR-04/08, AC-20/21). Выбирать файлы по размеру или порядку не нужно. Прежний вопрос также упоминал превышение количества; этот отдельный нерешённый случай приведён ниже как Q-09.
+- **OQ-03 — ЗАКРЫТ:** оригинальное имя сохраняется для скачивания и хранится в метаданных; для хранения используется независимый безопасный ключ (FR-10/19, AC-12/24).
 
-URI parser, storage-key generation, database locking, DTO names, media detection library, preview runtime and multipart configuration are implementation choices. They must satisfy the specified behavior and be tested.
+### Оставшиеся бизнес-вопросы
 
-Earlier analysis questions Q-05 (URL parser/input matrix), Q-07 (multipart mechanics) and Q-08 (omitted URL in PUT) are not retained as customer blockers. Follow HTTP/HTTPS requirements, preserve the existing full-update API semantics, and handle transport errors without weakening the specified batch/partial-success rules. No new business URL length limit, external-task lookup or format restriction is authorized by this clarification.
+Эти вопросы не пересматривают принятые выше решения и блокируют только зависящее от них поведение.
+
+- **Q-09 — Превышение количества в пакете:** если пакет помещается в оставшуюся ёмкость в байтах, но превышает количество свободных мест из 10 вложений, нужно отклонить весь пакет или принять часть? Если часть, то какие файлы? Например, у бага 9 вложений и переданы два корректных небольших файла. Решение заказчика о суммарном размере не отвечает на этот вопрос.
+- **Q-06 — Ошибка превью у корректного видео:** если корректное видео поддерживаемого формата не может получить обязательное превью из-за сбоя генерации, нужно отклонить вложение с отдельной ошибкой или сохранить его с явным состоянием ошибки превью и возможностью повторной попытки? Это вопрос видимого пользователю жизненного цикла, а не просьба выбрать инструмент декодирования. Обычная иконка не удовлетворяет FR-09. Сначала реализация должна попытаться обеспечить все требуемые форматы; нельзя без согласования сужать поддерживаемые форматы или кодеки, чтобы обойти этот вопрос.
+
+### Технические решения, не требующие ответа заказчика
+
+Парсер URI, генерация ключей хранения, блокировки БД, имена DTO, библиотека определения медиаформатов, среда выполнения генератора превью и настройка multipart выбираются при реализации. Они должны обеспечивать указанное поведение и быть проверены тестами.
+
+Прежние вопросы анализа Q-05 (парсер URL и набор вариантов ввода), Q-07 (механика multipart) и Q-08 (отсутствие URL в PUT) больше не считаются вопросами, блокирующими работу до ответа заказчика. Необходимо соблюдать требования HTTP/HTTPS, сохранять существующую семантику полного обновления API и обрабатывать транспортные ошибки без ослабления правил пакетной загрузки и частичного успеха. Это уточнение не разрешает вводить новый бизнес-лимит длины URL, обращаться к внешней задаче или ограничивать форматы.
