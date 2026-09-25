@@ -12,4 +12,10 @@ public class AttachmentFileTypeTests {
         assertThat(AttachmentFileType.fromExtension("jpg"))
                 .isEqualTo(AttachmentFileType.JPG);
     }
+
+    @Test
+    void fromFileNameTest() {
+        assertThat(AttachmentFileType.fromFilename("photo.jpg"))
+                .isEqualTo(AttachmentFileType.JPG);
+    }
 }
