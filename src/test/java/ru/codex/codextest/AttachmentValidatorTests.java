@@ -113,4 +113,17 @@ public class AttachmentValidatorTests {
                                                                     byteArrayOutputStream.toByteArray());
         validator.validateImageContent(mockMultipartFile);
     }
+
+    @Test
+    void rejectsTruncatedJpeg() throws IOException {
+        AttachmentValidator validator = new AttachmentValidator();
+        BufferedImage bufferedImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_BGR);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ImageIO.write(bufferedImage, "jpeg", byteArrayOutputStream);
+        byte[] pngBytes = byteArrayOutputStream.toByteArray();
+        byte[] truncatePng = Arrays.copyOf(pngBytes, pngBytes.length / 2);
+        var file = new MockMultipartFile("file", "picture.jpeg", "image/jpeg", truncatePng);
+        assertThatThrownBy(() -> validator.validateImageContent(file))
+                .isInstanceOf(RuntimeException.class);
+    }
 }
