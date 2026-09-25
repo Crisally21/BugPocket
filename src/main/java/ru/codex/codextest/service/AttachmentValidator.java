@@ -46,6 +46,8 @@ public class AttachmentValidator {
                 if (!format.equalsIgnoreCase("PNG") && !format.equalsIgnoreCase("JPEG")) {
                     throw new IllegalArgumentException("Содержимое файла не является изображением");
                 }
+                reader.setInput(imageInputStream);
+                BufferedImage image = reader.read(0);
             } finally {
                 reader.dispose();
             }
