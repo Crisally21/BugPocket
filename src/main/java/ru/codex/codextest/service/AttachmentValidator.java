@@ -40,11 +40,15 @@ public class AttachmentValidator {
                 throw new IllegalArgumentException("Содержимое файла не является изображением");
             }
             ImageReader reader = readers.next();
-            String format = reader.getFormatName();
-            if (!format.equalsIgnoreCase("PNG") && !format.equalsIgnoreCase("JPEG")) {
-                throw new IllegalArgumentException("Содержимое файла не является изображением");
-            }
 
+            try {
+                String format = reader.getFormatName();
+                if (!format.equalsIgnoreCase("PNG") && !format.equalsIgnoreCase("JPEG")) {
+                    throw new IllegalArgumentException("Содержимое файла не является изображением");
+                }
+            } finally {
+                reader.dispose();
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
