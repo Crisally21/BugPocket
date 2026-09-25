@@ -23,4 +23,13 @@ public class AttachmentValidatorTests {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Размер файла превышает 25 MB");
     }
+
+    @Test
+    void rejectsEmptyFile() {
+        AttachmentValidator validator = new AttachmentValidator();
+        var file = new MockMultipartFile("file", "screen.png", "image/png", new byte[0]);
+        assertThatThrownBy(() -> validator.validateSize(file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Файл пустой");
+    }
 }
