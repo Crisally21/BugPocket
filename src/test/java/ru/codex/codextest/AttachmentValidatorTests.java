@@ -4,6 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import ru.codex.codextest.service.AttachmentValidator;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -59,5 +63,17 @@ public class AttachmentValidatorTests {
         assertThatThrownBy(() -> validator.validateImageContent(file))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Содержимое файла не является изображением");
+    }
+
+    @Test
+    void acceptsValidPngImage() throws IOException {
+        BufferedImage bufferedImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_BGR);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        AttachmentValidator validator = new AttachmentValidator();
+        ImageIO.write(bufferedImage, "png", byteArrayOutputStream);
+        MockMultipartFile mockMultipartFile = new MockMultipartFile("file", "picture.png", "image/png",
+                                                                    byteArrayOutputStream.toByteArray());
+        validator.validateImageContent(mockMultipartFile);
+
     }
 }
