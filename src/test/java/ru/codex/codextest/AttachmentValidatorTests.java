@@ -32,4 +32,12 @@ public class AttachmentValidatorTests {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Файл пустой");
     }
+
+    @Test
+    void rejectsMissingFile() {
+        AttachmentValidator validator = new AttachmentValidator();
+        assertThatThrownBy(() -> validator.validateSize(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Файл не передан");
+    }
 }
