@@ -5,7 +5,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import ru.codex.codextest.service.AttachmentValidator;
 
 import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -85,7 +84,7 @@ public class AttachmentValidatorTests {
         AttachmentValidator validator = new AttachmentValidator();
         ImageIO.write(bufferedImage, "gif", byteArrayOutputStream);
         var file = new MockMultipartFile("file", "picture.gif", "image/gif",
-                                                                    byteArrayOutputStream.toByteArray());
+                                         byteArrayOutputStream.toByteArray());
         assertThatThrownBy(() -> validator.validateImageContent(file))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -125,5 +124,16 @@ public class AttachmentValidatorTests {
         var file = new MockMultipartFile("file", "picture.jpeg", "image/jpeg", truncateJpeg);
         assertThatThrownBy(() -> validator.validateImageContent(file))
                 .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void acceptsValidJpegWithJpgExtension() throws IOException {
+        AttachmentValidator validator = new AttachmentValidator();
+        BufferedImage bufferedImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_BGR);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ImageIO.write(bufferedImage, "jpeg", byteArrayOutputStream);
+        MockMultipartFile mockMultipartFile = new MockMultipartFile("file", "picture.jpg", "image/jpeg",
+                                                                    byteArrayOutputStream.toByteArray());
+        validator.validateImageContent(mockMultipartFile);
     }
 }
