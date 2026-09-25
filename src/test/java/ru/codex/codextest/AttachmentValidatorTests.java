@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import ru.codex.codextest.service.AttachmentValidator;
 
+import java.nio.charset.StandardCharsets;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 public class AttachmentValidatorTests {
@@ -47,5 +49,15 @@ public class AttachmentValidatorTests {
         var file = new MockMultipartFile("file", "screen.png", "image/png", new byte[24999999]);
         validator.validateSize(file);
 
+    }
+
+    @Test
+    void rejectsTextFileNameAsPng() {
+        AttachmentValidator validator = new AttachmentValidator();
+        var file = new MockMultipartFile("file", "pictures.png", "image/png", "это не картинка"
+                .getBytes(StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> validator.validateImageContent(file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Содержимое файла не является изображением");
     }
 }
