@@ -64,4 +64,10 @@ public class AttachmentFileTypeTests {
         assertThat(AttachmentFileType.MP4.getContentType())
                 .isEqualTo("video/mp4");
     }
+
+    @Test
+    void getContentTypeTestMOV() {
+        assertThat(AttachmentFileType.MOV.getContentType())
+                .isEqualTo("video/quicktime");
+    }
 }
