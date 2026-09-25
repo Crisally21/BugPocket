@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
@@ -87,5 +88,18 @@ public class AttachmentValidatorTests {
                                                                     byteArrayOutputStream.toByteArray());
         assertThatThrownBy(() -> validator.validateImageContent(file))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void rejectsTruncatedPng() throws IOException {
+        AttachmentValidator validator = new AttachmentValidator();
+        BufferedImage bufferedImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_BGR);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ImageIO.write(bufferedImage, "png", byteArrayOutputStream);
+        byte[] pngBytes = byteArrayOutputStream.toByteArray();
+        byte[] truncatePng = Arrays.copyOf(pngBytes, pngBytes.length / 2);
+        var file = new MockMultipartFile("file", "picture.png", "image/png", truncatePng);
+        assertThatThrownBy(() -> validator.validateImageContent(file))
+                .isInstanceOf(RuntimeException.class);
     }
 }
