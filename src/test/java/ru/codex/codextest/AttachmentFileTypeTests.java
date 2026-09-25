@@ -82,4 +82,10 @@ public class AttachmentFileTypeTests {
         assertThat(AttachmentFileType.AVI.getContentType())
                 .isEqualTo("video/x-msvideo");
     }
+
+    @Test
+    void getContentTypeTestWEBM() {
+        assertThat(AttachmentFileType.WEBM.getContentType())
+                .isEqualTo("video/webm");
+    }
 }
