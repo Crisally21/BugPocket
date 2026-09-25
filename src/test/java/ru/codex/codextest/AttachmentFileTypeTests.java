@@ -39,4 +39,10 @@ public class AttachmentFileTypeTests {
         assertThatThrownBy(() -> AttachmentFileType.fromExtension("txt"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void getContentTypeTestJpeg() {
+        assertThat(AttachmentFileType.JPG.getContentType())
+                .isEqualTo("image/jpeg");
+    }
 }
