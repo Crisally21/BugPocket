@@ -102,4 +102,15 @@ public class AttachmentValidatorTests {
         assertThatThrownBy(() -> validator.validateImageContent(file))
                 .isInstanceOf(RuntimeException.class);
     }
+
+    @Test
+    void acceptsValidJpegImage() throws IOException {
+        BufferedImage bufferedImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_BGR);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        AttachmentValidator validator = new AttachmentValidator();
+        ImageIO.write(bufferedImage, "jpeg", byteArrayOutputStream);
+        MockMultipartFile mockMultipartFile = new MockMultipartFile("file", "picture.jpeg", "image/jpeg",
+                                                                    byteArrayOutputStream.toByteArray());
+        validator.validateImageContent(mockMultipartFile);
+    }
 }
