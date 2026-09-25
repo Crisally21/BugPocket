@@ -88,4 +88,59 @@ public class AttachmentFileTypeTests {
         assertThat(AttachmentFileType.WEBM.getContentType())
                 .isEqualTo("video/webm");
     }
+
+    @Test
+    void recognizesUppercaseJpgExtension() {
+        assertThat(AttachmentFileType.fromExtension("JPG"))
+                .isEqualTo(AttachmentFileType.JPG);
+    }
+
+    @Test
+    void recognizesJpegExtension() {
+        assertThat(AttachmentFileType.fromExtension("jpeg"))
+                .isEqualTo(AttachmentFileType.JPEG);
+    }
+
+    @Test
+    void fromFilenameUsesLastExtension() {
+        assertThat(AttachmentFileType.fromFilename("photo.backup.JPG"))
+                .isEqualTo(AttachmentFileType.JPG);
+    }
+
+    @Test
+    void rejectsMissingExtension() {
+        assertThatThrownBy(() -> AttachmentFileType.fromExtension(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Расширение не указано");
+    }
+
+    @Test
+    void rejectsMissingFilename() {
+        assertThatThrownBy(() -> AttachmentFileType.fromFilename(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Название отсутствует");
+    }
+
+    @Test
+    void classifiesPngAndJpegAsImages() {
+        assertThat(AttachmentFileType.PNG.getMediaKind())
+                .isEqualTo(AttachmentMediaKind.IMAGE);
+        assertThat(AttachmentFileType.JPEG.getMediaKind())
+                .isEqualTo(AttachmentMediaKind.IMAGE);
+    }
+
+    @Test
+    void classifiesSupportedVideoTypesAsVideos() {
+        assertThat(AttachmentFileType.MP4.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
+        assertThat(AttachmentFileType.MOV.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
+        assertThat(AttachmentFileType.MKV.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
+        assertThat(AttachmentFileType.AVI.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
+        assertThat(AttachmentFileType.WEBM.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
+    }
+
+    @Test
+    void mapsPngAndJpegTypesToImageContentTypes() {
+        assertThat(AttachmentFileType.PNG.getContentType()).isEqualTo("image/png");
+        assertThat(AttachmentFileType.JPEG.getContentType()).isEqualTo("image/jpeg");
+    }
 }
