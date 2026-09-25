@@ -70,4 +70,10 @@ public class AttachmentFileTypeTests {
         assertThat(AttachmentFileType.MOV.getContentType())
                 .isEqualTo("video/quicktime");
     }
+
+    @Test
+    void getContentTypeTestMKV() {
+        assertThat(AttachmentFileType.MKV.getContentType())
+                .isEqualTo("video/x-matroska");
+    }
 }
