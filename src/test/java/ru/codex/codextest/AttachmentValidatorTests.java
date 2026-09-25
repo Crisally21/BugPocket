@@ -120,9 +120,9 @@ public class AttachmentValidatorTests {
         BufferedImage bufferedImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_BGR);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ImageIO.write(bufferedImage, "jpeg", byteArrayOutputStream);
-        byte[] pngBytes = byteArrayOutputStream.toByteArray();
-        byte[] truncatePng = Arrays.copyOf(pngBytes, pngBytes.length / 2);
-        var file = new MockMultipartFile("file", "picture.jpeg", "image/jpeg", truncatePng);
+        byte[] jpegBytes = byteArrayOutputStream.toByteArray();
+        byte[] truncateJpeg = Arrays.copyOf(jpegBytes, jpegBytes.length / 2);
+        var file = new MockMultipartFile("file", "picture.jpeg", "image/jpeg", truncateJpeg);
         assertThatThrownBy(() -> validator.validateImageContent(file))
                 .isInstanceOf(RuntimeException.class);
     }
