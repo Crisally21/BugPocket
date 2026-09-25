@@ -76,4 +76,10 @@ public class AttachmentFileTypeTests {
         assertThat(AttachmentFileType.MKV.getContentType())
                 .isEqualTo("video/x-matroska");
     }
+
+    @Test
+    void getContentTypeTestAVI() {
+        assertThat(AttachmentFileType.AVI.getContentType())
+                .isEqualTo("video/x-msvideo");
+    }
 }
