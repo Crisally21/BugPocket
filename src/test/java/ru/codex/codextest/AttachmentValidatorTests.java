@@ -40,4 +40,12 @@ public class AttachmentValidatorTests {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Файл не передан");
     }
+
+    @Test
+    void acceptsFileBelowSizeLimit() {
+        AttachmentValidator validator = new AttachmentValidator();
+        var file = new MockMultipartFile("file", "screen.png", "image/png", new byte[24999999]);
+        validator.validateSize(file);
+
+    }
 }
