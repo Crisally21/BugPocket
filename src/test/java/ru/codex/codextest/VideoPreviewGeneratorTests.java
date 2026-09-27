@@ -35,7 +35,7 @@ public class VideoPreviewGeneratorTests {
         try (InputStream video = getClass().getResourceAsStream("/video/sample." + extension)) {
             assertNotNull(video, "Не найден тестовый ролик: " + extension);
 
-            byte[] previewBytes = new VideoPreviewGenerator().generatePreview(video);
+            byte[] previewBytes = new VideoPreviewGenerator(temporaryDirectory).generatePreview(video);
             assertNotNull(previewBytes);
             byte[] pngSignature = {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
             assertArrayEquals(pngSignature, Arrays.copyOf(previewBytes, pngSignature.length));
@@ -44,6 +44,10 @@ public class VideoPreviewGeneratorTests {
             assertNotNull(preview);
             assertEquals(64, preview.getWidth());
             assertEquals(48, preview.getHeight());
+
+            try (var files = Files.list(temporaryDirectory)) {
+                assertEquals(0L, files.count(), "После создания превью временная папка должна быть пустой");
+            }
         }
     }
 
