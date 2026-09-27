@@ -101,4 +101,17 @@ public class VideoPreviewGeneratorTests {
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
         assertThrows(FFmpegFrameGrabber.Exception.class, () -> video.generatePreview(byteArrayInputStream));
     }
+
+    @Test
+    void propagatesVideoReadFailure() {
+        var video = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Ошибка чтения текстового потока");
+            }
+        };
+        var videoPreviewGenerator = new VideoPreviewGenerator();
+        IOException exception = assertThrows(IOException.class, () -> videoPreviewGenerator.generatePreview(video));
+        assertEquals(exception.getMessage(), "Ошибка чтения текстового потока");
+    }
 }
