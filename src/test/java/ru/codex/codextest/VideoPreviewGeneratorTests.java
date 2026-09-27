@@ -2,21 +2,43 @@ package ru.codex.codextest;
 
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.awt.image.BufferedImage;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import ru.codex.codextest.service.VideoPreviewGenerator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class VideoPreviewGeneratorTests {
+    @ParameterizedTest(name = "Создание PNG-превью из {0}")
+    @ValueSource(strings = {"mov", "mkv", "avi", "webm"})
+    void generatesPngPreviewFromSupportedContainer(String extension) throws Exception {
+        try (InputStream video = getClass().getResourceAsStream("/video/sample." + extension)) {
+            assertNotNull(video, "Не найден тестовый ролик: " + extension);
+
+            byte[] previewBytes = new VideoPreviewGenerator().generatePreview(video);
+            assertNotNull(previewBytes);
+            byte[] pngSignature = {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+            assertArrayEquals(pngSignature, Arrays.copyOf(previewBytes, pngSignature.length));
+
+            BufferedImage preview = ImageIO.read(new ByteArrayInputStream(previewBytes));
+            assertNotNull(preview);
+            assertEquals(64, preview.getWidth());
+            assertEquals(48, preview.getHeight());
+        }
+    }
+
     @Test
     void generatesPngPreviewFromMp4() throws Exception {
         try (InputStream video = getClass().getResourceAsStream("/video/linkin-park-given-up_113376 - Trim.mp4")) {
