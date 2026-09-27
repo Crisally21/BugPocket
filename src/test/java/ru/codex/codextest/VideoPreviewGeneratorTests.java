@@ -50,4 +50,15 @@ public class VideoPreviewGeneratorTests {
                 () -> video.generatePreview(null));
         assertEquals("Видеопоток не передан", exception.getMessage());
     }
+
+    @Test
+    void rejectsEmptyVideo() {
+        var bytes = new byte[0];
+        VideoPreviewGenerator videoPreviewGenerator = new VideoPreviewGenerator();
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+        assertThrows(
+          FFmpegFrameGrabber.Exception.class,
+          () -> videoPreviewGenerator.generatePreview(byteArrayInputStream)
+        );
+    }
 }
