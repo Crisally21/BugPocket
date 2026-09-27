@@ -37,7 +37,7 @@ public class AttachmentFileTypeTests {
 
     @Test
     void fromExtensionNameInvalidName() {
-        assertThatThrownBy(() -> AttachmentFileType.fromExtension("txt"))
+        assertThatThrownBy(() -> AttachmentFileType.fromExtension("exe"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -142,5 +142,26 @@ public class AttachmentFileTypeTests {
     void mapsPngAndJpegTypesToImageContentTypes() {
         assertThat(AttachmentFileType.PNG.getContentType()).isEqualTo("image/png");
         assertThat(AttachmentFileType.JPEG.getContentType()).isEqualTo("image/jpeg");
+    }
+
+    @Test
+    void recognizesDownloadOnlyFileExtensions() {
+        assertThat(AttachmentFileType.fromExtension("txt")).isEqualTo(AttachmentFileType.TXT);
+        assertThat(AttachmentFileType.fromExtension("log")).isEqualTo(AttachmentFileType.LOG);
+        assertThat(AttachmentFileType.fromExtension("pdf")).isEqualTo(AttachmentFileType.PDF);
+    }
+
+    @Test
+    void classifiesDownloadOnlyFileTypesAsDocuments() {
+        assertThat(AttachmentFileType.TXT.getMediaKind()).isEqualTo(AttachmentMediaKind.DOCUMENT);
+        assertThat(AttachmentFileType.LOG.getMediaKind()).isEqualTo(AttachmentMediaKind.DOCUMENT);
+        assertThat(AttachmentFileType.PDF.getMediaKind()).isEqualTo(AttachmentMediaKind.DOCUMENT);
+    }
+
+    @Test
+    void mapsDownloadOnlyFileTypesToContentTypes() {
+        assertThat(AttachmentFileType.TXT.getContentType()).isEqualTo("text/plain");
+        assertThat(AttachmentFileType.LOG.getContentType()).isEqualTo("text/plain");
+        assertThat(AttachmentFileType.PDF.getContentType()).isEqualTo("application/pdf");
     }
 }

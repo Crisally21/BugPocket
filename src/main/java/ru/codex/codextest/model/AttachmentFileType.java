@@ -4,15 +4,18 @@ package ru.codex.codextest.model;
 import java.util.Locale;
 
 public enum AttachmentFileType {
-    PNG, JPG, JPEG, MP4, MOV, MKV, AVI, WEBM;
+    PNG, JPG, JPEG, MP4, MOV, MKV, AVI, WEBM, TXT, LOG, PDF;
 
     public AttachmentMediaKind getMediaKind() {
         switch (this) {
             case JPG, PNG, JPEG -> {
                 return AttachmentMediaKind.IMAGE;
             }
-            default -> {
+            case MP4, MOV, MKV, AVI, WEBM -> {
                 return AttachmentMediaKind.VIDEO;
+            }
+            default -> {
+                return AttachmentMediaKind.DOCUMENT;
             }
 
         }
@@ -32,6 +35,10 @@ public enum AttachmentFileType {
                 return "video/x-matroska";
             case AVI:
                 return "video/x-msvideo";
+            case LOG, TXT:
+                return "text/plain";
+            case PDF:
+                return "application/pdf";
             default:
                 return "video/webm";
         }

@@ -1,2 +1,2 @@
 package ru.codex.codextest.model;
-public enum AttachmentMediaKind { IMAGE, VIDEO }
+public enum AttachmentMediaKind { IMAGE, VIDEO, DOCUMENT }
