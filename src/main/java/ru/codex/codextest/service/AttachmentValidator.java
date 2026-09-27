@@ -9,6 +9,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Iterator;
 
 public class AttachmentValidator {
@@ -32,7 +34,6 @@ public class AttachmentValidator {
     }
 
     public void validateImageContent(MultipartFile file) {
-        validateNotEmpty(file);
         validateSize(file);
         try (ImageInputStream imageInputStream = ImageIO.createImageInputStream(file.getInputStream())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInputStream);
@@ -53,6 +54,19 @@ public class AttachmentValidator {
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public void validatePdfContent(MultipartFile file) {
+        validateSize(file);
+        byte[] expectedHeader = "%PDF-".getBytes(StandardCharsets.US_ASCII);
+        try (InputStream inputStream = file.getInputStream()) {
+            byte[] actualHeader = inputStream.readNBytes(expectedHeader.length);
+            if (!Arrays.equals(expectedHeader, actualHeader)) {
+                throw new IllegalArgumentException("Содержимое файла не является PDF файлом");
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e);
         }
     }
 }

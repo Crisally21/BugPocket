@@ -126,4 +126,35 @@ public class AttachmentValidatorTests {
                 .isInstanceOf(RuntimeException.class);
     }
 
+    @Test
+    void acceptsPdfWithPdfHeader() {
+        AttachmentValidator validator = new AttachmentValidator();
+        byte[] pdfContent = "%PDF-1.7\n".getBytes(StandardCharsets.US_ASCII);
+        var file = new MockMultipartFile("file", "report.pdf", "application/pdf", pdfContent);
+
+        validator.validatePdfContent(file);
+    }
+
+    @Test
+    void rejectsTextFileNamedPdf() {
+        AttachmentValidator validator = new AttachmentValidator();
+        byte[] textContent = "это обычный текст".getBytes(StandardCharsets.UTF_8);
+        var file = new MockMultipartFile("file", "report.pdf", "application/pdf", textContent);
+
+        assertThatThrownBy(() -> validator.validatePdfContent(file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Содержимое файла не является PDF файлом");
+    }
+
+    @Test
+    void rejectsContentShorterThanPdfHeader() {
+        AttachmentValidator validator = new AttachmentValidator();
+        byte[] shortContent = "%PDF".getBytes(StandardCharsets.US_ASCII);
+        var file = new MockMultipartFile("file", "report.pdf", "application/pdf", shortContent);
+
+        assertThatThrownBy(() -> validator.validatePdfContent(file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Содержимое файла не является PDF файлом");
+    }
+
 }
