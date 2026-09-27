@@ -4,6 +4,8 @@ import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Java2DFrameConverter;
 
 import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -13,6 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class VideoPreviewGenerator {
+    private static final int MAX_PREVIEW_WIDTH = 1280;
+    private static final int MAX_PREVIEW_HEIGHT = 720;
     private final Path temporaryDirectory;
     private static final long MAX_VIDEO_SIZE_BYTES = 25000000L;
     private static final long MAX_VIDEO_PIXELS = 20000000L;
@@ -56,6 +60,7 @@ public class VideoPreviewGenerator {
                     throw new IOException("Не удалось преобразовать кадр видео в изображение");
                 }
 
+                image = resizePreview(image);
                 ByteArrayOutputStream preview = new ByteArrayOutputStream();
                 boolean written = ImageIO.write(image, "png", preview);
                 if (!written) {
@@ -90,5 +95,34 @@ public class VideoPreviewGenerator {
                 }
             }
         }
+    }
+
+    private BufferedImage resizePreview(BufferedImage source) {
+        int width = source.getWidth();
+        int height = source.getHeight();
+        if (width <= MAX_PREVIEW_WIDTH && height <= MAX_PREVIEW_HEIGHT) {
+            return source;
+        }
+        double scale = Math.min(
+                (double) MAX_PREVIEW_WIDTH / width,
+                (double) MAX_PREVIEW_HEIGHT / height
+        );
+        int targetWidth = Math.max(1, (int) (width * scale));
+        int targetHeight = Math.max(1, (int) (height * scale));
+        BufferedImage resized = new BufferedImage(
+                targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB
+        );
+        Graphics2D graphics = resized.createGraphics();
+        try {
+            graphics.setRenderingHint(
+                    RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR
+            );
+            graphics.drawImage(source, 0, 0, targetWidth, targetHeight, null);
+        } finally {
+            graphics.dispose();
+        }
+
+        return resized;
     }
 }

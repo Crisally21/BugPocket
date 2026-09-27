@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
@@ -28,6 +29,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class VideoPreviewGeneratorTests {
+
+    @ParameterizedTest
+    @CsvSource({"1920,1080,1280,720", "1080,1920,405,720"})
+    void scalesPreviewPreservingAspectRatio(int width, int height, int expectedWidth, int expectedHeight)
+            throws Exception {
+        String resource = "/video/frame-" + width + "x" + height + ".mkv";
+        try (InputStream video = getClass().getResourceAsStream(resource)) {
+            assertNotNull(video);
+            byte[] bytes = new VideoPreviewGenerator(temporaryDirectory).generatePreview(video);
+            BufferedImage preview = ImageIO.read(new ByteArrayInputStream(bytes));
+            assertNotNull(preview);
+            assertEquals(expectedWidth, preview.getWidth());
+            assertEquals(expectedHeight, preview.getHeight());
+            // Проверяем, что исходный красный кадр нарисован, а не возвращён пустой чёрный холст.
+            int pixel = preview.getRGB(expectedWidth / 2, expectedHeight / 2);
+            assertTrue(((pixel >> 16) & 255) > 200);
+            assertTrue(((pixel >> 8) & 255) < 30);
+            assertTrue((pixel & 255) < 30);
+        }
+        assertTemporaryDirectoryEmpty();
+    }
 
     @TempDir
     Path temporaryDirectory;
