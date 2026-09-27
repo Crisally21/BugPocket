@@ -15,6 +15,7 @@ import java.nio.file.Path;
 public class VideoPreviewGenerator {
     private final Path temporaryDirectory;
     private static final long MAX_VIDEO_SIZE_BYTES = 25000000L;
+    private static final long MAX_VIDEO_PIXELS = 20000000L;
 
     public VideoPreviewGenerator(Path temporaryDirectory) {
         this.temporaryDirectory = temporaryDirectory;
@@ -35,6 +36,15 @@ public class VideoPreviewGenerator {
             copyVideo(video, temporaryFile);
             grabber = new FFmpegFrameGrabber(temporaryFile.toFile());
             grabber.start();
+            int width = grabber.getImageWidth();
+            int height = grabber.getImageHeight();
+            if (width <= 0 || height <= 0) {
+                throw new IOException("Не удалось получить кадр из видео");
+            }
+            long pixels = (long) width * height;
+            if (pixels > MAX_VIDEO_PIXELS) {
+                throw new IOException("Размер видеокадра превышает 20 миллионов пикселей");
+            }
             var frame = grabber.grabImage();
             if (frame == null) {
                 throw new IOException("Не удалось получить кадр из видео");
