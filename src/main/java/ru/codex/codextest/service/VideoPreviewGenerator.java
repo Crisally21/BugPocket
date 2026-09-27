@@ -8,11 +8,12 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
 public class VideoPreviewGenerator {
+    private static final long MAX_VIDEO_SIZE_BYTES = 25000000L;
 
     public byte[] generatePreview(InputStream video) throws Exception {
         if (video == null) {
@@ -22,7 +23,7 @@ public class VideoPreviewGenerator {
         Path temporaryFile = Files.createTempFile("bugpocket-video", ".mp4");
         FFmpegFrameGrabber grabber = null;
         try {
-            Files.copy(video, temporaryFile, StandardCopyOption.REPLACE_EXISTING);
+            copyVideo(video, temporaryFile);
             grabber = new FFmpegFrameGrabber(temporaryFile.toFile());
             grabber.start();
             var frame = grabber.grabImage();
@@ -51,6 +52,23 @@ public class VideoPreviewGenerator {
                 }
             } finally {
                 Files.deleteIfExists(temporaryFile);
+            }
+        }
+    }
+
+    private void copyVideo(InputStream video, Path target) throws IOException {
+        var buffer = new byte[8192];
+        long totalBytes = 0;
+        int bytesRead;
+
+        try (OutputStream output = Files.newOutputStream(target)) {
+            while ((bytesRead = video.read(buffer)) != -1) {
+                totalBytes += bytesRead;
+                if (totalBytes > MAX_VIDEO_SIZE_BYTES) {
+                    throw new IOException("Размер видео превышает 25 MB");
+                } else {
+                    output.write(buffer, 0, bytesRead);
+                }
             }
         }
     }
