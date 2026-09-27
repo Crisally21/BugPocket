@@ -8,8 +8,10 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.zip.CRC32;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
@@ -99,7 +101,8 @@ public class AttachmentValidatorTests {
         byte[] truncatePng = Arrays.copyOf(pngBytes, pngBytes.length / 2);
         var file = new MockMultipartFile("file", "picture.png", "image/png", truncatePng);
         assertThatThrownBy(() -> validator.validateImageContent(file))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Не удалось прочитать изображение");
     }
 
     @Test
@@ -123,7 +126,30 @@ public class AttachmentValidatorTests {
         byte[] truncateJpeg = Arrays.copyOf(jpegBytes, jpegBytes.length / 2);
         var file = new MockMultipartFile("file", "picture.jpeg", "image/jpeg", truncateJpeg);
         assertThatThrownBy(() -> validator.validateImageContent(file))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Не удалось прочитать изображение");
+    }
+
+    @Test
+    void rejectsImageAbovePixelLimit() throws IOException {
+        BufferedImage bufferedImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_BGR);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ImageIO.write(bufferedImage, "png", byteArrayOutputStream);
+        byte[] pngBytes = byteArrayOutputStream.toByteArray();
+
+        ByteBuffer pngBuffer = ByteBuffer.wrap(pngBytes);
+        pngBuffer.putInt(16, 5000);
+        pngBuffer.putInt(20, 4001);
+        CRC32 crc32 = new CRC32();
+        crc32.update(pngBytes, 12, 17);
+        pngBuffer.putInt(29, (int) crc32.getValue());
+
+        var file = new MockMultipartFile("file", "large.png", "image/png", pngBytes);
+        AttachmentValidator validator = new AttachmentValidator();
+
+        assertThatThrownBy(() -> validator.validateImageContent(file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Изображение превышает допустимый размер");
     }
 
     @Test

@@ -5,10 +5,10 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -16,6 +16,7 @@ import java.util.Iterator;
 public class AttachmentValidator {
 
     private static final long MAX_FILE_SIZE_BYTES = 25000000L;
+    private static final long MAX_IMAGE_PIXELS = 20000000L;
 
     public void validateNotEmpty(MultipartFile file) {
         if (file == null) {
@@ -35,25 +36,44 @@ public class AttachmentValidator {
 
     public void validateImageContent(MultipartFile file) {
         validateSize(file);
-        try (ImageInputStream imageInputStream = ImageIO.createImageInputStream(file.getInputStream())) {
-            Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInputStream);
-            if (!readers.hasNext()) {
-                throw new IllegalArgumentException("Содержимое файла не является изображением");
+        try (InputStream inputStream = file.getInputStream()) {
+            ImageInputStream imageInputStream = ImageIO.createImageInputStream(inputStream);
+            if (imageInputStream == null) {
+                throw new IllegalArgumentException("Не удалось прочитать изображение");
             }
-            ImageReader reader = readers.next();
 
-            try {
-                String format = reader.getFormatName();
-                if (!format.equalsIgnoreCase("PNG") && !format.equalsIgnoreCase("JPEG")) {
+            try (imageInputStream) {
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInputStream);
+                if (!readers.hasNext()) {
                     throw new IllegalArgumentException("Содержимое файла не является изображением");
                 }
-                reader.setInput(imageInputStream);
-                BufferedImage image = reader.read(0);
-            } finally {
-                reader.dispose();
+
+                ImageReader reader = readers.next();
+                try {
+                    String format = reader.getFormatName();
+                    if (!format.equalsIgnoreCase("PNG")
+                            && !format.equalsIgnoreCase("JPG")
+                            && !format.equalsIgnoreCase("JPEG")) {
+                        throw new IllegalArgumentException("Содержимое файла не является изображением");
+                    }
+
+                    reader.setInput(imageInputStream);
+                    int width = reader.getWidth(0);
+                    int height = reader.getHeight(0);
+                    if (width <= 0 || height <= 0 || (long) width * height > MAX_IMAGE_PIXELS) {
+                        throw new IllegalArgumentException("Изображение превышает допустимый размер");
+                    }
+
+                    BufferedImage image = reader.read(0);
+                    if (image == null) {
+                        throw new IllegalArgumentException("Содержимое файла не является изображением");
+                    }
+                } finally {
+                    reader.dispose();
+                }
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException("Не удалось прочитать изображение", e);
         }
     }
 
@@ -66,7 +86,7 @@ public class AttachmentValidator {
                 throw new IllegalArgumentException("Содержимое файла не является PDF файлом");
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException(e);
+            throw new UncheckedIOException("Не удалось прочитать PDF-файл", e);
         }
     }
 }
