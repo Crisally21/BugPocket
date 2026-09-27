@@ -2,6 +2,7 @@ package ru.codex.codextest;
 
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -11,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.awt.image.BufferedImage;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import ru.codex.codextest.service.VideoPreviewGenerator;
@@ -22,6 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class VideoPreviewGeneratorTests {
+
+    @TempDir
+    Path temporaryDirectory;
+
     @ParameterizedTest(name = "Создание PNG-превью из {0}")
     @ValueSource(strings = {"mov", "mkv", "avi", "webm"})
     void generatesPngPreviewFromSupportedContainer(String extension) throws Exception {
@@ -113,5 +120,21 @@ public class VideoPreviewGeneratorTests {
         var videoPreviewGenerator = new VideoPreviewGenerator();
         IOException exception = assertThrows(IOException.class, () -> videoPreviewGenerator.generatePreview(video));
         assertEquals(exception.getMessage(), "Ошибка чтения текстового потока");
+    }
+
+    @Test
+    void deletesTemporaryFileAfterReadFailure() throws IOException {
+        var video = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Ошибка чтения текстового потока");
+            }
+        };
+        var videoPreviewGenerator = new VideoPreviewGenerator(temporaryDirectory);
+        assertThrows(IOException.class, () -> videoPreviewGenerator.generatePreview(video));
+        try (var files = Files.list(temporaryDirectory)) {
+            assertEquals(0L, files.count());
+        }
+
     }
 }
