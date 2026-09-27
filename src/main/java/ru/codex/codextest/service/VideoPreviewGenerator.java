@@ -13,14 +13,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class VideoPreviewGenerator {
+    private final Path temporaryDirectory;
     private static final long MAX_VIDEO_SIZE_BYTES = 25000000L;
+
+    public VideoPreviewGenerator(Path temporaryDirectory) {
+        this.temporaryDirectory = temporaryDirectory;
+    }
+
+    public VideoPreviewGenerator() {
+        this(Path.of(System.getProperty("java.io.tmpdir")));
+    }
 
     public byte[] generatePreview(InputStream video) throws Exception {
         if (video == null) {
             throw new IllegalArgumentException("Видеопоток не передан");
         }
 
-        Path temporaryFile = Files.createTempFile("bugpocket-video", ".mp4");
+        Path temporaryFile = Files.createTempFile(temporaryDirectory, "bugpocket-video", ".mp4");
         FFmpegFrameGrabber grabber = null;
         try {
             copyVideo(video, temporaryFile);
