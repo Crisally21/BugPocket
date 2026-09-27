@@ -146,6 +146,7 @@ public class VideoPreviewGeneratorTests {
         }
 
     }
+
     @Test
     void deletesTemporaryFileAfterDecodeFailure() throws IOException {
         byte[] bytes = "Это текст, а не видео".getBytes(StandardCharsets.UTF_8);
@@ -244,8 +245,8 @@ public class VideoPreviewGeneratorTests {
             // Допустимый MOV-атом свободного места: длина (big-endian), тип, заполнение.
             // Добавляется в конец и не меняет смещения существующих видеоданных.
             ByteBuffer.wrap(padded, original.length, 8)
-                    .putInt(paddingSize)
-                    .put("free".getBytes(StandardCharsets.US_ASCII));
+                      .putInt(paddingSize)
+                      .put("free".getBytes(StandardCharsets.US_ASCII));
             return padded;
         }
     }
@@ -253,6 +254,28 @@ public class VideoPreviewGeneratorTests {
     private void assertTemporaryDirectoryEmpty() throws IOException {
         try (var files = Files.list(temporaryDirectory)) {
             assertEquals(0L, files.count(), "Временные файлы должны быть удалены");
+        }
+    }
+
+    @Test
+    void acceptsVideoAtPixelLimit() throws Exception {
+        try (InputStream video = getClass().getResourceAsStream("/video/frame-5000x4000.mkv")) {
+            assertNotNull(video);
+            var videoPreviewGenerator = new VideoPreviewGenerator(temporaryDirectory);
+            byte[] videoBytes = videoPreviewGenerator.generatePreview(video);
+            assertNotNull(ImageIO.read(new ByteArrayInputStream(videoBytes)));
+            assertTemporaryDirectoryEmpty();
+        }
+    }
+
+    @Test
+    void rejectsVideoAbovePixelLimit() throws Exception {
+        try (InputStream videoStream = getClass().getResourceAsStream("/video/frame-5000x4002.mkv")) {
+            assertNotNull(videoStream);
+            var video = new VideoPreviewGenerator(temporaryDirectory);
+            IOException exception = assertThrows(IOException.class, () -> video.generatePreview(videoStream));
+            assertEquals("Размер видеокадра превышает 20 миллионов пикселей", exception.getMessage());
+            assertTemporaryDirectoryEmpty();
         }
     }
 }
