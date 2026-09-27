@@ -30,18 +30,20 @@ public class VideoPreviewGenerator {
                 throw new IOException("Не удалось получить кадр из видео");
             }
 
-            Java2DFrameConverter converter = new Java2DFrameConverter();
-            BufferedImage image = converter.convert(frame);
-            if (image == null) {
-                throw new IOException("Не удалось преобразовать кадр видео в изображение");
-            }
+            try (Java2DFrameConverter converter = new Java2DFrameConverter()) {
+                BufferedImage image = converter.convert(frame);
+                if (image == null) {
+                    throw new IOException("Не удалось преобразовать кадр видео в изображение");
+                }
 
-            ByteArrayOutputStream preview = new ByteArrayOutputStream();
-            boolean written = ImageIO.write(image, "png", preview);
-            if (!written) {
-                throw new IOException("Не удалось записать превью в PNG");
+                ByteArrayOutputStream preview = new ByteArrayOutputStream();
+                boolean written = ImageIO.write(image, "png", preview);
+                if (!written) {
+                    throw new IOException("Не удалось записать превью в PNG");
+                }
+
+                return preview.toByteArray();
             }
-            return preview.toByteArray();
         } finally {
             try {
                 if (grabber != null) {
@@ -52,5 +54,4 @@ public class VideoPreviewGenerator {
             }
         }
     }
-
 }
