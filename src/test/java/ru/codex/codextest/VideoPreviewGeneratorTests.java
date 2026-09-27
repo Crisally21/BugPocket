@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.awt.image.BufferedImage;
 import java.nio.charset.StandardCharsets;
@@ -79,8 +80,17 @@ public class VideoPreviewGeneratorTests {
         VideoPreviewGenerator videoPreviewGenerator = new VideoPreviewGenerator();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
         assertThrows(
-          FFmpegFrameGrabber.Exception.class,
-          () -> videoPreviewGenerator.generatePreview(byteArrayInputStream)
+                FFmpegFrameGrabber.Exception.class,
+                () -> videoPreviewGenerator.generatePreview(byteArrayInputStream)
         );
+    }
+
+    @Test
+    void rejectsVideoLargerThanLimit() {
+        var video = new VideoPreviewGenerator();
+        var bytes = new byte[25000001];
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+        IOException exception = assertThrows(IOException.class, () -> video.generatePreview(byteArrayInputStream));
+        assertEquals("Размер видео превышает 25 MB", exception.getMessage());
     }
 }
