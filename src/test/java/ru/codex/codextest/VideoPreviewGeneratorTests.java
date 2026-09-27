@@ -93,4 +93,12 @@ public class VideoPreviewGeneratorTests {
         IOException exception = assertThrows(IOException.class, () -> video.generatePreview(byteArrayInputStream));
         assertEquals("Размер видео превышает 25 MB", exception.getMessage());
     }
+
+    @Test
+    void passesSizeCheckAtExactLimit() {
+        var bytes = new byte[25000000];
+        var video = new VideoPreviewGenerator();
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+        assertThrows(FFmpegFrameGrabber.Exception.class, () -> video.generatePreview(byteArrayInputStream));
+    }
 }
