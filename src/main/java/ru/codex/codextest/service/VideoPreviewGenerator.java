@@ -33,50 +33,14 @@ public class VideoPreviewGenerator {
         if (video == null) {
             throw new IllegalArgumentException("Видеопоток не передан");
         }
-
-        Path temporaryFile = Files.createTempFile(temporaryDirectory, "bugpocket-video", ".mp4");
-        FFmpegFrameGrabber grabber = null;
+        Path temporaryFile = Files.createTempFile(
+                temporaryDirectory, "bugpocket-video", ".mp4"
+        );
         try {
             copyVideo(video, temporaryFile);
-            grabber = new FFmpegFrameGrabber(temporaryFile.toFile());
-            grabber.start();
-            int width = grabber.getImageWidth();
-            int height = grabber.getImageHeight();
-            if (width <= 0 || height <= 0) {
-                throw new IOException("Не удалось получить кадр из видео");
-            }
-            long pixels = (long) width * height;
-            if (pixels > MAX_VIDEO_PIXELS) {
-                throw new IOException("Размер видеокадра превышает 20 миллионов пикселей");
-            }
-            var frame = grabber.grabImage();
-            if (frame == null) {
-                throw new IOException("Не удалось получить кадр из видео");
-            }
-
-            try (Java2DFrameConverter converter = new Java2DFrameConverter()) {
-                BufferedImage image = converter.convert(frame);
-                if (image == null) {
-                    throw new IOException("Не удалось преобразовать кадр видео в изображение");
-                }
-
-                image = resizePreview(image);
-                ByteArrayOutputStream preview = new ByteArrayOutputStream();
-                boolean written = ImageIO.write(image, "png", preview);
-                if (!written) {
-                    throw new IOException("Не удалось записать превью в PNG");
-                }
-
-                return preview.toByteArray();
-            }
+            return generatePreviewFromFile(temporaryFile);
         } finally {
-            try {
-                if (grabber != null) {
-                    grabber.release();
-                }
-            } finally {
-                Files.deleteIfExists(temporaryFile);
-            }
+            Files.deleteIfExists(temporaryFile);
         }
     }
 
@@ -125,4 +89,42 @@ public class VideoPreviewGenerator {
 
         return resized;
     }
+
+    public byte[] generatePreviewFromFile(Path videoFile) throws Exception {
+        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videoFile.toFile());
+        try {
+            grabber.start();
+            int width = grabber.getImageWidth();
+            int height = grabber.getImageHeight();
+            if (width <= 0 || height <= 0) {
+                throw new IOException("Не удалось получить кадр из видео");
+            }
+            long pixels = (long) width * height;
+            if (pixels > MAX_VIDEO_PIXELS) {
+                throw new IOException("Размер видеокадра превышает 20 миллионов пикселей");
+            }
+            var frame = grabber.grabImage();
+            if (frame == null) {
+                throw new IOException("Не удалось получить кадр из видео");
+            }
+            try (Java2DFrameConverter converter = new Java2DFrameConverter()) {
+                BufferedImage image = converter.convert(frame);
+                if (image == null) {
+                    throw new IOException("Не удалось преобразовать кадр видео в изображение");
+                }
+
+                image = resizePreview(image);
+                ByteArrayOutputStream preview = new ByteArrayOutputStream();
+                boolean written = ImageIO.write(image, "png", preview);
+                if (!written) {
+                    throw new IOException("Не удалось записать превью в PNG");
+                }
+
+                return preview.toByteArray();
+            }
+        } finally {
+            grabber.release();
+        }
+    }
+
 }

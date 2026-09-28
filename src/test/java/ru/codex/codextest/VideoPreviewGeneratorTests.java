@@ -30,6 +30,39 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class VideoPreviewGeneratorTests {
 
+    @Test
+    void generatesPreviewFromFileWithoutChangingSource() throws Exception {
+        byte[] original;
+        try (InputStream source = getClass().getResourceAsStream("/video/sample.mov")) {
+            assertNotNull(source);
+            original = source.readAllBytes();
+        }
+        Path videoFile = temporaryDirectory.resolve("source.mov");
+        Files.write(videoFile, original);
+
+        byte[] previewBytes = new VideoPreviewGenerator(temporaryDirectory).generatePreviewFromFile(videoFile);
+        BufferedImage preview = ImageIO.read(new ByteArrayInputStream(previewBytes));
+        assertNotNull(preview);
+        assertEquals(64, preview.getWidth());
+        assertEquals(48, preview.getHeight());
+        assertArrayEquals(original, Files.readAllBytes(videoFile));
+        Files.delete(videoFile);
+        assertTemporaryDirectoryEmpty();
+    }
+
+    @Test
+    void preservesSourceFileAfterDecodeFailure() throws Exception {
+        byte[] original = "Это текст, а не видео".getBytes(StandardCharsets.UTF_8);
+        Path videoFile = temporaryDirectory.resolve("invalid.mov");
+        Files.write(videoFile, original);
+
+        var generator = new VideoPreviewGenerator(temporaryDirectory);
+        assertThrows(FFmpegFrameGrabber.Exception.class, () -> generator.generatePreviewFromFile(videoFile));
+        assertArrayEquals(original, Files.readAllBytes(videoFile));
+        Files.delete(videoFile);
+        assertTemporaryDirectoryEmpty();
+    }
+
     @ParameterizedTest
     @CsvSource({"1920,1080,1280,720", "1080,1920,405,720"})
     void scalesPreviewPreservingAspectRatio(int width, int height, int expectedWidth, int expectedHeight)
