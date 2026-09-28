@@ -30,15 +30,16 @@ async function api(path, { method = 'GET', body, signal } = {}) {
   let timedOut = false;
   const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 15000);
   try {
+    const multipart = typeof FormData !== 'undefined' && body instanceof FormData;
     const response = await fetch('/api/bugs' + path, {
       method,
-      headers: { Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
-      ...(body ? { body: JSON.stringify(body) } : {}),
+      headers: { Accept: 'application/json', ...(!multipart && body ? { 'Content-Type': 'application/json' } : {}) },
+      ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
       signal: controller.signal
     });
-    let data;
+    let data = null;
     try {
-      data = await response.json();
+      data = response.status === 204 ? null : await response.json();
     } catch (error) {
       if (error.name === 'AbortError') throw error;
       throw new Error('Сервер вернул неожиданный ответ. Попробуй ещё раз.');
@@ -61,6 +62,16 @@ async function api(path, { method = 'GET', body, signal } = {}) {
     clearTimeout(timer);
     signal?.removeEventListener('abort', cancel);
   }
+}
+
+function attachmentCard(attachment, bugId) {
+  const previewable = attachment.mediaKind === 'IMAGE' || attachment.mediaKind === 'VIDEO';
+  const preview = previewable ? '<img class="attachment-preview" src="/api/bugs/' + bugId + '/attachments/' + attachment.id + '/content" alt="Превью ' + esc(attachment.originalFilename) + '">' : '<span class="attachment-icon">' + esc(attachment.fileType) + '</span>';
+  return '<article class="attachment-card">' + preview + '<div class="attachment-info"><strong>' + esc(attachment.originalFilename) + '</strong><small>' + esc(attachment.fileType) + ' · ' + attachment.sizeBytes + ' байт</small><a class="btn btn-quiet" href="/api/bugs/' + bugId + '/attachments/' + attachment.id + '/download">Скачать</a><button class="btn btn-quiet attachment-delete" data-attachment-id="' + attachment.id + '" type="button">Удалить</button></div></article>';
+}
+
+function attachmentsHtml(attachments, bugId) {
+  return '<section class="detail-section attachments-section"><div class="attachments-heading"><h2>Вложения</h2><label class="btn">Добавить файлы<input id="attachment-input" type="file" multiple hidden></label></div><p id="attachment-error" class="field-error" role="alert" hidden></p><div id="attachments-list" class="attachments-list">' + (attachments.length ? attachments.map(item => attachmentCard(item, bugId)).join('') : '<p class="not-specified">Вложений пока нет</p>') + '</div></section>';
 }
 
 function badge(status) {
@@ -131,7 +142,7 @@ async function render() {
       const bug = await api('/' + route.id, { signal });
       if (version !== renderVersion) return;
       if (route.type === 'edit') renderForm(bug);
-      else renderDetail(bug);
+      else renderDetail(bug, await api('/' + route.id + '/attachments', { signal }));
     } else {
       view.innerHTML = '<section class="panel empty-state"><h1>Страница не найдена</h1><p>Проверь адрес или вернись к багам.</p><a class="btn btn-primary" href="#/bugs">Все баги</a></section>';
       finishRender('Страница не найдена');
@@ -203,7 +214,7 @@ function renderList(bugs, route) {
   finishRender(titles[route.status] || 'Все баги');
 }
 
-function renderDetail(bug) {
+function renderDetail(bug, attachments = []) {
   const taskUrl = safeRelatedTaskUrl(bug.relatedTaskUrl);
   view.innerHTML = breadcrumb('Баг #' + bug.id) +
     '<div class="page-heading detail-heading"><div><p class="eyebrow">Баг #' + bug.id + '</p><h1>' + esc(bug.header) + '</h1></div>' +
@@ -215,7 +226,7 @@ function renderDetail(bug) {
     '<section class="detail-section"><h2>Связанная задача</h2>' +
     (taskUrl ? '<a class="related-task-link" href="' + esc(taskUrl) + '" target="_blank" rel="noopener noreferrer">' +
       esc(taskUrl) + '</a>' : '<p class="not-specified">Не указано</p>') + '</section>' +
-    '</article><aside class="panel detail-aside"><h2>Детали бага</h2>' + badge(bug.status) +
+    attachmentsHtml(attachments, bug.id) + '</article><aside class="panel detail-aside"><h2>Детали бага</h2>' + badge(bug.status) +
     '<form id="status-form"><fieldset><label for="bug-status">Изменить статус</label><select id="bug-status" name="status">' + options(STATUSES, bug.status) +
     '</select><button class="btn btn-primary" type="submit" disabled>Сохранить статус</button></fieldset><p class="field-error" role="alert" id="status-error" hidden></p></form>' +
     '<dl><div><dt>Приоритет</dt><dd>' + priority(bug.priority) + '</dd></div><div><dt>Создан</dt><dd>' + esc(formatDate(bug.createdAt)) +
@@ -239,7 +250,7 @@ function renderDetail(bug) {
     try {
       const updated = await api('/' + bug.id + '/status', { method: 'PATCH', body: { status: select.value } });
       dirty = false;
-      renderDetail(updated);
+      renderDetail(updated, await api('/' + bug.id + '/attachments'));
       notify('Статус обновлён');
     } catch (error) {
       errorElement.textContent = error.message;
@@ -251,6 +262,27 @@ function renderDetail(bug) {
       button.disabled = select.value === bug.status;
     }
   });
+  view.querySelector('#attachment-input')?.addEventListener('change', async event => {
+    const files = [...event.target.files];
+    if (!files.length) return;
+    const data = new FormData();
+    files.forEach(file => data.append('files', file));
+    const error = view.querySelector('#attachment-error');
+    try {
+      const result = await api('/' + bug.id + '/attachments', { method: 'POST', body: data });
+      if (result.errors?.length) error.textContent = result.errors.map(item => item.filename + ': ' + item.message).join('; ');
+      error.hidden = !result.errors?.length;
+      renderDetail(bug, await api('/' + bug.id + '/attachments'));
+    } catch (uploadError) { error.textContent = uploadError.message; error.hidden = false; }
+  });
+  view.querySelectorAll('.attachment-delete').forEach(button => button.addEventListener('click', async () => {
+    if (!window.confirm('Удалить это вложение?')) return;
+    button.disabled = true;
+    try {
+      await api('/' + bug.id + '/attachments/' + button.dataset.attachmentId, { method: 'DELETE' });
+      renderDetail(bug, await api('/' + bug.id + '/attachments'));
+    } catch (error) { notify(error.message); button.disabled = false; }
+  }));
   finishRender('Баг #' + bug.id);
 }
 
@@ -292,6 +324,7 @@ function renderForm(bug) {
     '" aria-describedby="relatedTaskUrl-error relatedTaskUrl-hint" placeholder="tracker.company.local/TASK-123">' +
     '<p class="field-error" id="relatedTaskUrl-error" hidden></p>' +
     '<p class="field-hint" id="relatedTaskUrl-hint">Необязательно. Если схема не указана, добавим https://.</p></div>' +
+    '<div class="field attachment-picker"><label for="new-attachments">Вложения</label><input id="new-attachments" type="file" multiple><p class="field-hint">Видео получит отдельное превью; TXT, LOG и PDF доступны для скачивания.</p></div>' +
     '<div class="form-actions"><a class="btn btn-quiet" href="' + esc(returnHash) + '">Отмена</a><button class="btn btn-primary" type="submit">' +
     (editing ? 'Сохранить изменения' : 'Создать баг') + '</button></div></fieldset></form>' +
     '<aside class="form-aside"><p class="aside-label">Небольшая подсказка</p><h2>Хороший баг-репорт</h2><p>Одна запись — одна ошибка. Так проще следить за исправлением и ничего не потерять.</p>' +
@@ -301,6 +334,11 @@ function renderForm(bug) {
   const fieldset = form.querySelector('fieldset');
   const button = form.querySelector('button[type="submit"]');
   const errorBox = form.querySelector('#form-error');
+  let selectedFiles = [];
+  form.querySelector('#new-attachments')?.addEventListener('change', event => {
+    selectedFiles = [...event.target.files];
+    dirty = true;
+  });
   const readValues = () => Object.fromEntries(new FormData(form));
   const initialValues = JSON.stringify(readValues());
   function showFields(errors) {
@@ -342,6 +380,12 @@ function renderForm(bug) {
     form.setAttribute('aria-busy', 'true');
     try {
       const saved = await api(editing ? '/' + bug.id : '', { method: editing ? 'PUT' : 'POST', body: data });
+      if (!editing && selectedFiles.length) {
+        const filesBody = new FormData();
+        selectedFiles.forEach(file => filesBody.append('files', file));
+        const uploadResult = await api('/' + saved.id + '/attachments', { method: 'POST', body: filesBody });
+        if (uploadResult.errors?.length) notify('Баг создан, но часть вложений отклонена');
+      }
       dirty = false;
       saving = false;
       location.hash = '#/bugs/' + saved.id;

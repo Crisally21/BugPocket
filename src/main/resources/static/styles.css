@@ -63,6 +63,16 @@ h2 { margin: 0; font-size: 17px; letter-spacing: -.2px; }
 .btn-quiet { background: transparent; border-color: transparent; color: var(--muted); box-shadow: none; }
 .plus { font-size: 20px; line-height: 1; font-weight: 400; }
 .panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 3px 15px #24334c03; overflow: hidden; }
+.attachments-section { margin-top: 26px; }
+.attachments-heading { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.attachments-heading input { display:none; }
+.attachments-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
+.attachment-card { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; }
+.attachment-preview { display:block; width:100%; height:130px; object-fit:cover; background:#f2f3f5; }
+.attachment-icon { display:grid; place-items:center; height:130px; background:var(--accent-soft); color:var(--accent); font-weight:700; }
+.attachment-info { padding:11px; display:grid; gap:3px; }
+.attachment-info strong { overflow-wrap:anywhere; }
+.attachment-info small { color:var(--muted); }
 .toolbar { padding: 20px; display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid var(--line); background: #fff; }
 .filter-field { min-width: 140px; }
 .filter-field label { display: block; font-size: 11px; color: var(--muted); margin: 0 0 6px 2px; font-weight: 600; }
