@@ -1,6 +1,7 @@
 package ru.codex.codextest.service;
 
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -13,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
 
+@Component
 public class AttachmentValidator {
 
     private static final long MAX_FILE_SIZE_BYTES = 25000000L;

@@ -89,6 +89,7 @@ Attachment API отделён от JSON POST/PUT bug. Существующий a
 
 ### T-06 — AttachmentService: квоты, batch и согласованность
 
+- **Прогресс (2026-09-28):** добавлены DTO, список/поиск вложений, multipart-загрузка с пофайловой проверкой, общей квотой 25 000 000 байт и partial success, сохранение оригинала/видеопревью и удаление. Полный набор проекта: 120 тестов прошли. Конкурентная блокировка квоты, компенсация после commit и отдельные тесты upload/delete ещё требуют усиления.
 - **Статус:** IN PROGRESS (2026-09-28), ветка `feat/attachment-service`. Реализовано получение списка вложений с проверкой существования бага. Проверки: 3 `AttachmentServiceTests` и 3 `AttachmentRepositoryTests` прошли. Загрузка, квоты, batch и согласованность пока не реализованы.
 
 - **Цель:** объединить проверенные компоненты в загрузку и удаление с правилами batch/partial success.
@@ -99,6 +100,8 @@ Attachment API отделён от JSON POST/PUT bug. Существующий a
 - **Зависимости:** T-03–05. Q-06 и Q-09 закрыты. Q-04 закрыт: B = 25 000 000 байт.
 
 ### T-07 — Attachment REST API и ошибки
+
+- **Прогресс (2026-09-28):** добавлен `AttachmentController`: список, multipart upload, content, download и delete; внутренние storage keys в ответах не выдаются. Полный HTTP acceptance для multipart-overhead, Unicode Content-Disposition и настоящего storage ещё впереди.
 
 - **Цель:** открыть операции вложений отдельными endpoints, сохранив обычные JSON операции bug.
 - **Требования:** FR-01–11, FR-18/19 / AC-01–13, AC-20–22, AC-24/25.

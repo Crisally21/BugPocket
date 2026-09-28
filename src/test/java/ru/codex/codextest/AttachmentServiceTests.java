@@ -3,6 +3,7 @@ package ru.codex.codextest;
 import org.junit.jupiter.api.Test;
 import ru.codex.codextest.exception.BugNotFoundException;
 import ru.codex.codextest.exception.AttachmentNotFoundException;
+import ru.codex.codextest.dto.AttachmentResponse;
 import ru.codex.codextest.model.BugAttachment;
 import ru.codex.codextest.repository.AttachmentRepository;
 import ru.codex.codextest.repository.BugRepository;
@@ -69,7 +70,7 @@ class AttachmentServiceTests {
         when(bugs.existsById(bugId)).thenReturn(true);
         when(attachments.findByBugIdOrderByCreatedAtAscIdAsc(bugId)).thenReturn(List.of(first, second));
 
-        assertEquals(List.of(first, second), service.findByBugId(bugId));
+        assertEquals(List.of(AttachmentResponse.from(first), AttachmentResponse.from(second)), service.findByBugId(bugId));
         verify(attachments).findByBugIdOrderByCreatedAtAscIdAsc(bugId);
     }
 
