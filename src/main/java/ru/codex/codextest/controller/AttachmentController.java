@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.codex.codextest.model.BugAttachment;
+import ru.codex.codextest.dto.AttachmentResponse;
 import ru.codex.codextest.service.*;
 
 @RestController
@@ -25,7 +26,7 @@ public class AttachmentController {
     }
 
     @GetMapping
-    public List<?> list(@PathVariable long bugId) { return service.findByBugId(bugId); }
+    public List<AttachmentResponse> list(@PathVariable long bugId) { return service.findByBugId(bugId); }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public AttachmentBatchResponse upload(@PathVariable long bugId,

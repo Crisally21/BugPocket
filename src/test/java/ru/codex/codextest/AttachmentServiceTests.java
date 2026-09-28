@@ -1,6 +1,7 @@
 package ru.codex.codextest;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
 import ru.codex.codextest.exception.BugNotFoundException;
 import ru.codex.codextest.exception.AttachmentNotFoundException;
 import ru.codex.codextest.dto.AttachmentResponse;
@@ -8,7 +9,12 @@ import ru.codex.codextest.model.BugAttachment;
 import ru.codex.codextest.repository.AttachmentRepository;
 import ru.codex.codextest.repository.BugRepository;
 import ru.codex.codextest.service.AttachmentService;
+import ru.codex.codextest.service.AttachmentStorage;
+import ru.codex.codextest.service.AttachmentValidator;
+import ru.codex.codextest.service.VideoPreviewGenerator;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,5 +97,87 @@ class AttachmentServiceTests {
 
         assertEquals("Баг с номером 42 не найден", error.getMessage());
         verifyNoInteractions(attachments);
+    }
+
+    @Test
+    void acceptsValidFilesAndReportsInvalidFilesInSameBatch() throws Exception {
+        AttachmentStorage storage = mock(AttachmentStorage.class);
+        VideoPreviewGenerator previews = mock(VideoPreviewGenerator.class);
+        AttachmentService uploadService = new AttachmentService(
+                bugs, attachments, new AttachmentValidator(), storage, previews);
+        when(bugs.existsById(42L)).thenReturn(true);
+        when(attachments.totalSizeByBugId(42L)).thenReturn(0L);
+        when(storage.store(any(InputStream.class))).thenReturn("stored-key");
+        when(attachments.saveAndFlush(any(BugAttachment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = uploadService.upload(42L, List.of(
+                new MockMultipartFile("files", "notes.txt", "text/plain", "hello".getBytes()),
+                new MockMultipartFile("files", "malware.exe", "application/octet-stream", new byte[]{1})
+        ));
+
+        assertEquals(1, result.accepted().size());
+        assertEquals(1, result.errors().size());
+        assertEquals("malware.exe", result.errors().get(0).filename());
+        verify(attachments).saveAndFlush(any(BugAttachment.class));
+    }
+
+    @Test
+    void rejectsWholeValidBatchWhenRemainingQuotaIsTooSmall() {
+        AttachmentStorage storage = mock(AttachmentStorage.class);
+        AttachmentService uploadService = new AttachmentService(
+                bugs, attachments, new AttachmentValidator(), storage, mock(VideoPreviewGenerator.class));
+        when(bugs.existsById(42L)).thenReturn(true);
+        when(attachments.totalSizeByBugId(42L)).thenReturn(24_999_999L);
+
+        var result = uploadService.upload(42L, List.of(
+                new MockMultipartFile("files", "one.txt", "text/plain", new byte[]{1, 2}),
+                new MockMultipartFile("files", "two.txt", "text/plain", new byte[]{3})
+        ));
+
+        assertTrue(result.accepted().isEmpty());
+        assertEquals(2, result.errors().size());
+        verifyNoInteractions(storage);
+        verify(attachments, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void removesStoredOriginalWhenVideoPreviewGenerationFails() throws Exception {
+        AttachmentStorage storage = mock(AttachmentStorage.class);
+        VideoPreviewGenerator previews = mock(VideoPreviewGenerator.class);
+        AttachmentService uploadService = new AttachmentService(
+                bugs, attachments, new AttachmentValidator(), storage, previews);
+        when(bugs.existsById(42L)).thenReturn(true);
+        when(attachments.totalSizeByBugId(42L)).thenReturn(0L);
+        when(storage.store(any(InputStream.class))).thenReturn("video-key");
+        when(previews.generatePreview(any(InputStream.class)))
+                .thenThrow(new IOException("preview failed"));
+
+        var result = uploadService.upload(42L, List.of(
+                new MockMultipartFile("files", "clip.mp4", "video/mp4", new byte[]{1, 2, 3})
+        ));
+
+        assertTrue(result.accepted().isEmpty());
+        assertEquals("clip.mp4", result.errors().get(0).filename());
+        verify(storage).delete("video-key");
+        verify(attachments, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void deletesDatabaseRecordAndBothStoredFiles() throws Exception {
+        AttachmentStorage storage = mock(AttachmentStorage.class);
+        AttachmentService deleteService = new AttachmentService(
+                bugs, attachments, new AttachmentValidator(), storage, mock(VideoPreviewGenerator.class));
+        BugAttachment attachment = new BugAttachment();
+        attachment.setStorageKey("original-key");
+        attachment.setPreviewKey("preview-key");
+        when(bugs.existsById(42L)).thenReturn(true);
+        when(attachments.findByIdAndBugId(7L, 42L)).thenReturn(Optional.of(attachment));
+
+        deleteService.delete(42L, 7L);
+
+        verify(attachments).delete(attachment);
+        verify(storage).delete("original-key");
+        verify(storage).delete("preview-key");
     }
 }

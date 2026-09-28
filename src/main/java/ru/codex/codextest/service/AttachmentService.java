@@ -2,7 +2,6 @@ package ru.codex.codextest.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import ru.codex.codextest.exception.AttachmentNotFoundException;
 import ru.codex.codextest.exception.BugNotFoundException;
@@ -14,11 +13,8 @@ import ru.codex.codextest.repository.AttachmentRepository;
 import ru.codex.codextest.repository.BugRepository;
 
 import java.util.List;
-import java.util.Optional;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.UUID;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
