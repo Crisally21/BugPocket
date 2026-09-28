@@ -18,11 +18,17 @@ public class VideoPreviewGenerator {
     private static final int MAX_PREVIEW_WIDTH = 1280;
     private static final int MAX_PREVIEW_HEIGHT = 720;
     private final Path temporaryDirectory;
+    private final VideoPreviewProcess previewProcess;
     private static final long MAX_VIDEO_SIZE_BYTES = 25000000L;
     private static final long MAX_VIDEO_PIXELS = 20000000L;
 
     public VideoPreviewGenerator(Path temporaryDirectory) {
+        this(temporaryDirectory, new VideoPreviewProcess());
+    }
+
+    VideoPreviewGenerator(Path temporaryDirectory, VideoPreviewProcess previewProcess) {
         this.temporaryDirectory = temporaryDirectory;
+        this.previewProcess = previewProcess;
     }
 
     public VideoPreviewGenerator() {
@@ -38,7 +44,7 @@ public class VideoPreviewGenerator {
         );
         try {
             copyVideo(video, temporaryFile);
-            return generatePreviewFromFile(temporaryFile);
+            return previewProcess.generate(temporaryFile, temporaryDirectory);
         } finally {
             Files.deleteIfExists(temporaryFile);
         }
@@ -90,6 +96,7 @@ public class VideoPreviewGenerator {
         return resized;
     }
 
+    /** Обработка внутри worker. Для загрузок используй generatePreview с тайм-аутом процесса. */
     public byte[] generatePreviewFromFile(Path videoFile) throws Exception {
         FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videoFile.toFile());
         try {

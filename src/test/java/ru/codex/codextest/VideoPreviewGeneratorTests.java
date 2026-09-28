@@ -130,7 +130,7 @@ public class VideoPreviewGeneratorTests {
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
         VideoPreviewGenerator videoPreviewGenerator = new VideoPreviewGenerator();
         assertThrows(
-                FFmpegFrameGrabber.Exception.class,
+                IOException.class,
                 () -> videoPreviewGenerator.generatePreview(byteArrayInputStream)
         );
     }
@@ -150,7 +150,7 @@ public class VideoPreviewGeneratorTests {
         VideoPreviewGenerator videoPreviewGenerator = new VideoPreviewGenerator();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
         assertThrows(
-                FFmpegFrameGrabber.Exception.class,
+                IOException.class,
                 () -> videoPreviewGenerator.generatePreview(byteArrayInputStream)
         );
     }
@@ -170,7 +170,8 @@ public class VideoPreviewGeneratorTests {
         var bytes = new byte[25000000];
         var video = new VideoPreviewGenerator();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
-        assertThrows(FFmpegFrameGrabber.Exception.class, () -> video.generatePreview(byteArrayInputStream));
+        IOException exception = assertThrows(IOException.class, () -> video.generatePreview(byteArrayInputStream));
+        assertEquals("Не удалось создать превью видео", exception.getMessage());
     }
 
     @Test
@@ -207,7 +208,8 @@ public class VideoPreviewGeneratorTests {
         byte[] bytes = "Это текст, а не видео".getBytes(StandardCharsets.UTF_8);
         try (var video = new ByteArrayInputStream(bytes)) {
             var generator = new VideoPreviewGenerator(temporaryDirectory);
-            assertThrows(FFmpegFrameGrabber.Exception.class, () -> generator.generatePreview(video));
+            IOException exception = assertThrows(IOException.class, () -> generator.generatePreview(video));
+            assertEquals("Не удалось создать превью видео", exception.getMessage());
         }
         assertTemporaryDirectoryEmpty();
     }
