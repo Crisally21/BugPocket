@@ -89,6 +89,8 @@ Attachment API отделён от JSON POST/PUT bug. Существующий a
 
 ### T-06 — AttachmentService: квоты, batch и согласованность
 
+- **Статус:** IN PROGRESS (2026-09-28), ветка `feat/attachment-service`. Реализовано получение списка вложений с проверкой существования бага. Проверки: 3 `AttachmentServiceTests` и 3 `AttachmentRepositoryTests` прошли. Загрузка, квоты, batch и согласованность пока не реализованы.
+
 - **Цель:** объединить проверенные компоненты в загрузку и удаление с правилами batch/partial success.
 - **Требования:** FR-01–08, FR-11, FR-18/19 / AC-01–09, AC-13, AC-20–22, AC-24.
 - **Компоненты/файлы:** AttachmentService, AttachmentRepository, BugRepository для выбранной блокировки, storage/preview; batch result DTO и service tests.
