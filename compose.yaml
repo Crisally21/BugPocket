@@ -18,6 +18,22 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/bugpocket
+      DB_USERNAME: ${DB_USERNAME:-bugpocket}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting application}
+      ATTACHMENT_STORAGE_ROOT: /app/data/attachments
+    ports:
+      - "8080:8080"
+    volumes:
+      - attachments_data:/app/data/attachments
 
 volumes:
   postgres_data:
+  attachments_data:

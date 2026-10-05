@@ -1,0 +1,7 @@
+.git
+.idea
+.run
+target
+node_modules
+data
+*.log
