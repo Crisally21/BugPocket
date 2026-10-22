@@ -20,5 +20,23 @@ pipeline {
                 '''
             }
         }
+
+        stage('Backend Tests') {
+            steps {
+                echo '=== RUNNING BACKEND TESTS ==='
+
+                sh 'mvn -B -ntp clean test'
+
+                echo '=== BACKEND TESTS COMPLETED ==='
+            }
+
+            post {
+                always {
+                    echo '=== PUBLISHING JUNIT RESULTS ==='
+
+                    junit 'target/surefire-reports/TEST-*.xml'
+                }
+            }
+        }
     }
 }
