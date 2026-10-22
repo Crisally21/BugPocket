@@ -29,16 +29,33 @@ pipeline {
 
     stages {
 
+
+
         stage('Checkout') {
             steps {
-                echo "=== CHECKOUT BRANCH: ${params.TARGET_BRANCH} ==="
+                script {
+                    if (env.CHANGE_ID) {
+                        echo "=== PULL REQUEST #${env.CHANGE_ID} ==="
+                        echo "=== TARGET BRANCH: ${env.CHANGE_TARGET} ==="
 
-                git branch: params.TARGET_BRANCH,
-                    url: 'https://github.com/Crisally21/BugPocket.git'
+                        checkout scm
+                    } else {
+                        echo "=== MANUAL BUILD: ${params.TARGET_BRANCH} ==="
 
-                sh 'git log -1 --oneline'
+                        git branch: params.TARGET_BRANCH,
+                            url: 'https://github.com/Crisally21/BugPocket.git'
+                    }
+                }
+
+                sh '''
+                    echo "=== CHECKED OUT COMMIT ==="
+                    git log -1 --oneline
+                    git rev-parse HEAD
+                '''
             }
         }
+
+
 
         stage('Initialization') {
             steps {
