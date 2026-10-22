@@ -4,7 +4,42 @@ pipeline {
         label 'agent-1'
     }
 
+    options {
+        skipDefaultCheckout()
+
+        buildDiscarder(logRotator(
+            numToKeepStr: '10',
+            artifactNumToKeepStr: '2'
+        ))
+    }
+
+    parameters {
+        gitParameter(
+            name: 'TARGET_BRANCH',
+            type: 'PT_BRANCH',
+            branchFilter: 'origin/(.*)',
+            defaultValue: 'ci/jenkins',
+            description: 'Choose Git branch to build',
+            selectedValue: 'DEFAULT',
+            sortMode: 'ASCENDING_SMART',
+            quickFilterEnabled: false,
+            listSize: '1'
+        )
+    }
+
     stages {
+
+        stage('Checkout') {
+            steps {
+                echo "=== CHECKOUT BRANCH: ${params.TARGET_BRANCH} ==="
+
+                git branch: params.TARGET_BRANCH,
+                    url: 'https://github.com/Crisally21/BugPocket.git'
+
+                sh 'git log -1 --oneline'
+            }
+        }
+
         stage('Initialization') {
             steps {
                 echo '=== BUGPOCKET CI STARTED ==='
@@ -56,7 +91,6 @@ pipeline {
                 echo '=== FRONTEND TESTS COMPLETED ==='
             }
         }
-
 
         stage('Package') {
             steps {
