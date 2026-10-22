@@ -38,5 +38,24 @@ pipeline {
                 }
             }
         }
+
+        stage('Frontend Tests') {
+            steps {
+                echo '=== INSTALLING FRONTEND DEPENDENCIES ==='
+
+                sh 'npm ci'
+
+                echo '=== CHECKING JAVASCRIPT SYNTAX ==='
+
+                sh 'npm run check:ui'
+
+                echo '=== RUNNING FRONTEND TESTS ==='
+
+                sh 'npm run test:ui'
+
+                echo '=== FRONTEND TESTS COMPLETED ==='
+            }
+        }
+
     }
 }
