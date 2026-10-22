@@ -57,5 +57,26 @@ pipeline {
             }
         }
 
+
+        stage('Package') {
+            steps {
+                echo '=== BUILDING SPRING BOOT JAR ==='
+
+                sh 'mvn -B -ntp -DskipTests package'
+
+                echo '=== CHECKING GENERATED JAR ==='
+
+                sh 'ls -lh target/*.jar'
+            }
+
+            post {
+                success {
+                    echo '=== ARCHIVING JAR ==='
+
+                    archiveArtifacts artifacts: 'target/*.jar',
+                        fingerprint: true
+                }
+            }
+        }
     }
 }
