@@ -14,6 +14,7 @@ let readController;
 let renderVersion = 0;
 let toastTimer;
 const pocket = '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M13 9h22v22a11 11 0 0 1-22 0V9Z" stroke="currentColor" stroke-width="2"/><path d="m18 23 5 5 8-9M8 16h5m22 0h5M8 30h5m22 0h5M18 5l2 4m10-4-2 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ATTACHMENT_ACCEPT = '.png,.jpg,.jpeg,.txt,.log,.pdf';
 
 function notify(message) {
   clearTimeout(toastTimer);
@@ -65,13 +66,13 @@ async function api(path, { method = 'GET', body, signal } = {}) {
 }
 
 function attachmentCard(attachment, bugId) {
-  const previewable = attachment.mediaKind === 'IMAGE' || attachment.mediaKind === 'VIDEO';
+  const previewable = attachment.mediaKind === 'IMAGE';
   const preview = previewable ? '<img class="attachment-preview" src="/api/bugs/' + bugId + '/attachments/' + attachment.id + '/content" alt="Превью ' + esc(attachment.originalFilename) + '">' : '<span class="attachment-icon">' + esc(attachment.fileType) + '</span>';
   return '<article class="attachment-card">' + preview + '<div class="attachment-info"><strong>' + esc(attachment.originalFilename) + '</strong><small>' + esc(attachment.fileType) + ' · ' + attachment.sizeBytes + ' байт</small><a class="btn btn-quiet" href="/api/bugs/' + bugId + '/attachments/' + attachment.id + '/download">Скачать</a><button class="btn btn-quiet attachment-delete" data-attachment-id="' + attachment.id + '" type="button">Удалить</button></div></article>';
 }
 
 function attachmentsHtml(attachments, bugId) {
-  return '<section class="detail-section attachments-section"><div class="attachments-heading"><h2>Вложения</h2><label class="btn">Добавить файлы<input id="attachment-input" type="file" multiple hidden></label></div><p id="attachment-error" class="field-error" role="alert" hidden></p><div id="attachments-list" class="attachments-list">' + (attachments.length ? attachments.map(item => attachmentCard(item, bugId)).join('') : '<p class="not-specified">Вложений пока нет</p>') + '</div></section>';
+  return '<section class="detail-section attachments-section"><div class="attachments-heading"><h2>Вложения</h2><label class="btn">Добавить файлы<input id="attachment-input" type="file" accept="' + ATTACHMENT_ACCEPT + '" multiple hidden></label></div><p id="attachment-error" class="field-error" role="alert" hidden></p><div id="attachments-list" class="attachments-list">' + (attachments.length ? attachments.map(item => attachmentCard(item, bugId)).join('') : '<p class="not-specified">Вложений пока нет</p>') + '</div></section>';
 }
 
 function badge(status) {
@@ -324,7 +325,7 @@ function renderForm(bug) {
     '" aria-describedby="relatedTaskUrl-error relatedTaskUrl-hint" placeholder="tracker.company.local/TASK-123">' +
     '<p class="field-error" id="relatedTaskUrl-error" hidden></p>' +
     '<p class="field-hint" id="relatedTaskUrl-hint">Необязательно. Если схема не указана, добавим https://.</p></div>' +
-    '<div class="field attachment-picker"><label for="new-attachments">Вложения</label><input id="new-attachments" type="file" multiple><p class="field-hint">Видео получит отдельное превью; TXT, LOG и PDF доступны для скачивания.</p></div>' +
+    '<div class="field attachment-picker"><label for="new-attachments">Вложения</label><input id="new-attachments" type="file" accept="' + ATTACHMENT_ACCEPT + '" multiple><p class="field-hint">Изображения показываются в карточке, TXT, LOG и PDF доступны для скачивания.</p></div>' +
     '<div class="form-actions"><a class="btn btn-quiet" href="' + esc(returnHash) + '">Отмена</a><button class="btn btn-primary" type="submit">' +
     (editing ? 'Сохранить изменения' : 'Создать баг') + '</button></div></fieldset></form>' +
     '<aside class="form-aside"><p class="aside-label">Небольшая подсказка</p><h2>Хороший баг-репорт</h2><p>Одна запись — одна ошибка. Так проще следить за исправлением и ничего не потерять.</p>' +

@@ -29,8 +29,6 @@ public class BugAttachment {
     private long sizeBytes;
     @Column(nullable = false, length = 36, unique = true)
     private String storageKey;
-    @Column(length = 36)
-    private String previewKey;
     @Column(nullable = false, columnDefinition = "text")
     private String originalFilename;
     @Column(nullable = false, updatable = false)

@@ -23,7 +23,6 @@ class AttachmentResponseTests {
         attachment.setSizeBytes(2048L);
         attachment.setCreatedAt(createdAt);
         attachment.setStorageKey("internal-storage-key");
-        attachment.setPreviewKey("internal-preview-key");
 
         AttachmentResponse response = AttachmentResponse.from(attachment);
 

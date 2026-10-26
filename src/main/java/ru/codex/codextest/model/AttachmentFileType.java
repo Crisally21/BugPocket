@@ -4,15 +4,12 @@ package ru.codex.codextest.model;
 import java.util.Locale;
 
 public enum AttachmentFileType {
-    PNG, JPG, JPEG, MP4, MOV, MKV, AVI, WEBM, TXT, LOG, PDF;
+    PNG, JPG, JPEG, TXT, LOG, PDF;
 
     public AttachmentMediaKind getMediaKind() {
         switch (this) {
             case JPG, PNG, JPEG -> {
                 return AttachmentMediaKind.IMAGE;
-            }
-            case MP4, MOV, MKV, AVI, WEBM -> {
-                return AttachmentMediaKind.VIDEO;
             }
             default -> {
                 return AttachmentMediaKind.DOCUMENT;
@@ -27,20 +24,12 @@ public enum AttachmentFileType {
                 return "image/png";
             case JPG, JPEG:
                 return "image/jpeg";
-            case MP4:
-                return "video/mp4";
-            case MOV:
-                return "video/quicktime";
-            case MKV:
-                return "video/x-matroska";
-            case AVI:
-                return "video/x-msvideo";
             case LOG, TXT:
                 return "text/plain";
             case PDF:
                 return "application/pdf";
             default:
-                return "video/webm";
+                throw new IllegalStateException("Неизвестный тип вложения: " + this);
         }
     }
 
@@ -48,7 +37,11 @@ public enum AttachmentFileType {
         if (extension == null) {
             throw new IllegalArgumentException("Расширение не указано");
         }
-        return AttachmentFileType.valueOf(extension.toUpperCase(Locale.ROOT));
+        try {
+            return AttachmentFileType.valueOf(extension.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException error) {
+            throw new IllegalArgumentException("Формат файла не поддерживается");
+        }
     }
 
     public static AttachmentFileType fromFilename(String filename) {

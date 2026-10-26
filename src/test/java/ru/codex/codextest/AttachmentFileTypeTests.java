@@ -38,7 +38,8 @@ public class AttachmentFileTypeTests {
     @Test
     void fromExtensionNameInvalidName() {
         assertThatThrownBy(() -> AttachmentFileType.fromExtension("exe"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Формат файла не поддерживается");
     }
 
     @Test
@@ -51,42 +52,6 @@ public class AttachmentFileTypeTests {
     void getMediaKindTestImage() {
         assertThat(AttachmentFileType.JPG.getMediaKind())
                 .isEqualTo(AttachmentMediaKind.IMAGE);
-    }
-
-    @Test
-    void getMediaKindTestVideo() {
-        assertThat(AttachmentFileType.MP4.getMediaKind())
-                .isEqualTo(AttachmentMediaKind.VIDEO);
-    }
-
-    @Test
-    void getContentTypeTestMP4() {
-        assertThat(AttachmentFileType.MP4.getContentType())
-                .isEqualTo("video/mp4");
-    }
-
-    @Test
-    void getContentTypeTestMOV() {
-        assertThat(AttachmentFileType.MOV.getContentType())
-                .isEqualTo("video/quicktime");
-    }
-
-    @Test
-    void getContentTypeTestMKV() {
-        assertThat(AttachmentFileType.MKV.getContentType())
-                .isEqualTo("video/x-matroska");
-    }
-
-    @Test
-    void getContentTypeTestAVI() {
-        assertThat(AttachmentFileType.AVI.getContentType())
-                .isEqualTo("video/x-msvideo");
-    }
-
-    @Test
-    void getContentTypeTestWEBM() {
-        assertThat(AttachmentFileType.WEBM.getContentType())
-                .isEqualTo("video/webm");
     }
 
     @Test
@@ -127,15 +92,6 @@ public class AttachmentFileTypeTests {
                 .isEqualTo(AttachmentMediaKind.IMAGE);
         assertThat(AttachmentFileType.JPEG.getMediaKind())
                 .isEqualTo(AttachmentMediaKind.IMAGE);
-    }
-
-    @Test
-    void classifiesSupportedVideoTypesAsVideos() {
-        assertThat(AttachmentFileType.MP4.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
-        assertThat(AttachmentFileType.MOV.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
-        assertThat(AttachmentFileType.MKV.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
-        assertThat(AttachmentFileType.AVI.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
-        assertThat(AttachmentFileType.WEBM.getMediaKind()).isEqualTo(AttachmentMediaKind.VIDEO);
     }
 
     @Test

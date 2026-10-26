@@ -49,10 +49,8 @@ public class AttachmentController {
     public ResponseEntity<InputStreamResource> content(@PathVariable long bugId, @PathVariable long attachmentId)
             throws IOException {
         BugAttachment attachment = service.findById(bugId, attachmentId);
-        String key = attachment.getPreviewKey() == null ? attachment.getStorageKey() : attachment.getPreviewKey();
-        InputStream stream = storage.open(key);
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(
-                attachment.getPreviewKey() == null ? attachment.getContentType() : "image/png"))
+        InputStream stream = storage.open(attachment.getStorageKey());
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(attachment.getContentType()))
                 .body(new InputStreamResource(stream));
     }
 

@@ -18,4 +18,5 @@
     </changeSet>
     <include file="2-add-related-task-url.xml" relativeToChangelogFile="true"/>
     <include file="3-create-bug-attachment.xml" relativeToChangelogFile="true"/>
+    <include file="4-drop-attachment-preview-key.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
