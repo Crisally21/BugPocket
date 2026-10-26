@@ -31,29 +31,39 @@ pipeline {
 
 
 
-        stage('Checkout') {
-            steps {
-                script {
-                    if (env.CHANGE_ID) {
-                        echo "=== PULL REQUEST #${env.CHANGE_ID} ==="
-                        echo "=== TARGET BRANCH: ${env.CHANGE_TARGET} ==="
 
-                        checkout scm
-                    } else {
-                        echo "=== MANUAL BUILD: ${params.TARGET_BRANCH} ==="
+    stage('Checkout') {
+        steps {
+            script {
+                if (env.CHANGE_ID) {
+                    echo "=== PULL REQUEST #${env.CHANGE_ID} ==="
+                    echo "=== TARGET: ${env.CHANGE_TARGET} ==="
 
-                        git branch: params.TARGET_BRANCH,
-                            url: 'https://github.com/Crisally21/BugPocket.git'
-                    }
+                    checkout scm
+
+                } else if (env.BRANCH_NAME) {
+                    echo "=== AUTOMATIC BRANCH BUILD ==="
+                    echo "=== BRANCH: ${env.BRANCH_NAME} ==="
+
+                    checkout scm
+
+                } else {
+                    echo "=== MANUAL BUILD ==="
+                    echo "=== BRANCH: ${params.TARGET_BRANCH} ==="
+
+                    git branch: params.TARGET_BRANCH,
+                        url: 'https://github.com/Crisally21/BugPocket.git'
                 }
-
-                sh '''
-                    echo "=== CHECKED OUT COMMIT ==="
-                    git log -1 --oneline
-                    git rev-parse HEAD
-                '''
             }
+
+            sh '''
+                echo "=== CHECKED OUT COMMIT ==="
+                git log -1 --oneline
+                git rev-parse HEAD
+            '''
         }
+    }
+
 
 
 
