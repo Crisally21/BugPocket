@@ -24,21 +24,18 @@ public class AttachmentService {
     private final AttachmentRepository attachmentRepository;
     private final AttachmentValidator validator;
     private final AttachmentStorage storage;
-    private final VideoPreviewGenerator previewGenerator;
 
     @Autowired
     public AttachmentService(BugRepository bugRepository, AttachmentRepository attachmentRepository,
-                             AttachmentValidator validator, AttachmentStorage storage,
-                             VideoPreviewGenerator previewGenerator) {
+                             AttachmentValidator validator, AttachmentStorage storage) {
         this.bugRepository = bugRepository;
         this.attachmentRepository = attachmentRepository;
         this.validator = validator;
         this.storage = storage;
-        this.previewGenerator = previewGenerator;
     }
 
     public AttachmentService(BugRepository bugRepository, AttachmentRepository attachmentRepository) {
-        this(bugRepository, attachmentRepository, new AttachmentValidator(), null, null);
+        this(bugRepository, attachmentRepository, new AttachmentValidator(), null);
     }
 
     public List<AttachmentResponse> findByBugId(long bugId) {
@@ -84,14 +81,9 @@ public class AttachmentService {
         }
         for (MultipartFile file : valid) {
             String originalKey = null;
-            String previewKey = null;
             try {
                 AttachmentFileType type = AttachmentFileType.fromFilename(file.getOriginalFilename());
                 originalKey = storage.store(file.getInputStream());
-                if (type.getMediaKind() == AttachmentMediaKind.VIDEO) {
-                    byte[] preview = previewGenerator.generatePreview(file.getInputStream());
-                    previewKey = storage.store(new java.io.ByteArrayInputStream(preview));
-                }
                 BugAttachment entity = new BugAttachment();
                 entity.setBugId(bugId);
                 entity.setMediaKind(type.getMediaKind());
@@ -99,11 +91,9 @@ public class AttachmentService {
                 entity.setContentType(type.getContentType());
                 entity.setSizeBytes(file.getSize());
                 entity.setStorageKey(originalKey);
-                entity.setPreviewKey(previewKey);
                 entity.setOriginalFilename(file.getOriginalFilename() == null ? "file" : file.getOriginalFilename());
                 accepted.add(AttachmentResponse.from(attachmentRepository.saveAndFlush(entity)));
             } catch (Exception error) {
-                if (previewKey != null) try { storage.delete(previewKey); } catch (IOException ignored) { }
                 if (originalKey != null) try { storage.delete(originalKey); } catch (IOException ignored) { }
                 errors.add(new AttachmentUploadError(file.getOriginalFilename(), error.getMessage()));
             }
@@ -118,7 +108,6 @@ public class AttachmentService {
                 .orElseThrow(() -> new AttachmentNotFoundException(attachmentId));
         attachmentRepository.delete(attachment);
         storage.delete(attachment.getStorageKey());
-        if (attachment.getPreviewKey() != null) storage.delete(attachment.getPreviewKey());
     }
 
     private void requireBug(long bugId) {

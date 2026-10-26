@@ -62,11 +62,6 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>javacv-platform</artifactId>
-            <version>1.5.13</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>

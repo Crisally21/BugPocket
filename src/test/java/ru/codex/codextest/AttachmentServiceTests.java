@@ -11,9 +11,7 @@ import ru.codex.codextest.repository.BugRepository;
 import ru.codex.codextest.service.AttachmentService;
 import ru.codex.codextest.service.AttachmentStorage;
 import ru.codex.codextest.service.AttachmentValidator;
-import ru.codex.codextest.service.VideoPreviewGenerator;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
@@ -102,9 +100,8 @@ class AttachmentServiceTests {
     @Test
     void acceptsValidFilesAndReportsInvalidFilesInSameBatch() throws Exception {
         AttachmentStorage storage = mock(AttachmentStorage.class);
-        VideoPreviewGenerator previews = mock(VideoPreviewGenerator.class);
         AttachmentService uploadService = new AttachmentService(
-                bugs, attachments, new AttachmentValidator(), storage, previews);
+                bugs, attachments, new AttachmentValidator(), storage);
         when(bugs.existsById(42L)).thenReturn(true);
         when(attachments.totalSizeByBugId(42L)).thenReturn(0L);
         when(storage.store(any(InputStream.class))).thenReturn("stored-key");
@@ -126,7 +123,7 @@ class AttachmentServiceTests {
     void rejectsWholeValidBatchWhenRemainingQuotaIsTooSmall() {
         AttachmentStorage storage = mock(AttachmentStorage.class);
         AttachmentService uploadService = new AttachmentService(
-                bugs, attachments, new AttachmentValidator(), storage, mock(VideoPreviewGenerator.class));
+                bugs, attachments, new AttachmentValidator(), storage);
         when(bugs.existsById(42L)).thenReturn(true);
         when(attachments.totalSizeByBugId(42L)).thenReturn(24_999_999L);
 
@@ -142,35 +139,12 @@ class AttachmentServiceTests {
     }
 
     @Test
-    void removesStoredOriginalWhenVideoPreviewGenerationFails() throws Exception {
-        AttachmentStorage storage = mock(AttachmentStorage.class);
-        VideoPreviewGenerator previews = mock(VideoPreviewGenerator.class);
-        AttachmentService uploadService = new AttachmentService(
-                bugs, attachments, new AttachmentValidator(), storage, previews);
-        when(bugs.existsById(42L)).thenReturn(true);
-        when(attachments.totalSizeByBugId(42L)).thenReturn(0L);
-        when(storage.store(any(InputStream.class))).thenReturn("video-key");
-        when(previews.generatePreview(any(InputStream.class)))
-                .thenThrow(new IOException("preview failed"));
-
-        var result = uploadService.upload(42L, List.of(
-                new MockMultipartFile("files", "clip.mp4", "video/mp4", new byte[]{1, 2, 3})
-        ));
-
-        assertTrue(result.accepted().isEmpty());
-        assertEquals("clip.mp4", result.errors().get(0).filename());
-        verify(storage).delete("video-key");
-        verify(attachments, never()).saveAndFlush(any());
-    }
-
-    @Test
     void deletesDatabaseRecordAndBothStoredFiles() throws Exception {
         AttachmentStorage storage = mock(AttachmentStorage.class);
         AttachmentService deleteService = new AttachmentService(
-                bugs, attachments, new AttachmentValidator(), storage, mock(VideoPreviewGenerator.class));
+                bugs, attachments, new AttachmentValidator(), storage);
         BugAttachment attachment = new BugAttachment();
         attachment.setStorageKey("original-key");
-        attachment.setPreviewKey("preview-key");
         when(bugs.existsById(42L)).thenReturn(true);
         when(attachments.findByIdAndBugId(7L, 42L)).thenReturn(Optional.of(attachment));
 
@@ -178,6 +152,5 @@ class AttachmentServiceTests {
 
         verify(attachments).delete(attachment);
         verify(storage).delete("original-key");
-        verify(storage).delete("preview-key");
     }
 }

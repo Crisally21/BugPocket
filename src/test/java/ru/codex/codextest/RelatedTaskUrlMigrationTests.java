@@ -47,7 +47,7 @@ class RelatedTaskUrlMigrationTests {
             assertThat(jdbc.queryForObject(
                     "select md5sum from databasechangelog where id = '1-create-bug'", String.class))
                     .isEqualTo(checksum);
-            assertThat(jdbc.queryForObject("select count(*) from databasechangelog", Integer.class)).isEqualTo(3);
+            assertThat(jdbc.queryForObject("select count(*) from databasechangelog", Integer.class)).isEqualTo(4);
             String longUrl = "https://tracker.invalid/?q=" + "x".repeat(3000);
             jdbc.update("update bug set related_task_url = ?", longUrl);
             assertThat(jdbc.queryForObject("select related_task_url from bug", String.class)).isEqualTo(longUrl);

@@ -46,7 +46,7 @@ class AttachmentControllerTests {
 
     @Test
     void downloadsOriginalWithSafeFilename() throws Exception {
-        BugAttachment attachment = attachment("notes\".txt", "text/plain", "original", null);
+        BugAttachment attachment = attachment("notes\".txt", "text/plain", "original");
         when(service.findById(42L, 7L)).thenReturn(attachment);
         when(storage.open("original")).thenReturn(new ByteArrayInputStream(new byte[]{1, 2}));
 
@@ -59,16 +59,16 @@ class AttachmentControllerTests {
     }
 
     @Test
-    void contentUsesVideoPreviewWhenPresent() throws Exception {
-        BugAttachment attachment = attachment("clip.mp4", "video/mp4", "original", "preview");
+    void contentUsesOriginalFile() throws Exception {
+        BugAttachment attachment = attachment("picture.png", "image/png", "original");
         when(service.findById(42L, 7L)).thenReturn(attachment);
-        when(storage.open("preview")).thenReturn(new ByteArrayInputStream(new byte[]{3}));
+        when(storage.open("original")).thenReturn(new ByteArrayInputStream(new byte[]{3}));
 
         var response = controller.content(42L, 7L);
 
         assertEquals("image/png", response.getHeaders().getContentType().toString());
         assertArrayEquals(new byte[]{3}, response.getBody().getInputStream().readAllBytes());
-        verify(storage).open("preview");
+        verify(storage).open("original");
     }
 
     @Test
@@ -77,15 +77,13 @@ class AttachmentControllerTests {
         verify(service).delete(42L, 7L);
     }
 
-    private static BugAttachment attachment(String filename, String contentType,
-                                            String storageKey, String previewKey) {
+    private static BugAttachment attachment(String filename, String contentType, String storageKey) {
         BugAttachment attachment = new BugAttachment();
         attachment.setId(7L);
         attachment.setBugId(42L);
         attachment.setOriginalFilename(filename);
         attachment.setContentType(contentType);
         attachment.setStorageKey(storageKey);
-        attachment.setPreviewKey(previewKey);
         return attachment;
     }
 }
