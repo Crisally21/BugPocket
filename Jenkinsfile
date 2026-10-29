@@ -165,7 +165,7 @@ pipeline {
             }
 
             steps {
-                sshagent(credentials: ['bugpocket-deploy']) {
+                sshagent(credentials: ['bugpocket-deploy-ssh']) {
                     sh '''
                         set -eu
                         COMMIT_SHA="$(git rev-parse HEAD)"
