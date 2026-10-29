@@ -165,7 +165,7 @@ pipeline {
             }
 
             steps {
-                sshagent(credential: ['bugpocket-deploy']) {
+                sshagent(credentials: ['bugpocket-deploy']) {
                     sh '''
                         set -eu
                         COMMIT_SHA="$(git rev-parse HEAD)"
@@ -186,7 +186,7 @@ pipeline {
                         sleep 30
 
                         curl -fsS http://127.0.0.1:8080/actuator/health
-                        REMOTE
+REMOTE
 
                     '''
                 }
