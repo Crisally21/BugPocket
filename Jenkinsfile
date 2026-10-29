@@ -139,5 +139,60 @@ pipeline {
                 }
             }
         }
+
+        stage('Approve Deploy') {
+            when {
+                expression {
+                    return env.JOB_NAME == 'Vovus/BugPocket-Master/master' &&
+                        env.BRANCH_NAME == 'master' &&
+                        !env.CHANGE_ID
+                }
+            }
+
+            steps {
+                input message: 'Deploy BugPocket to production?',
+                    ok: 'Deploy'
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                expression {
+                    return env.JOB_NAME == 'Vovus/BugPocket-Master/master' &&
+                        env.BRANCH_NAME == 'master' &&
+                        !env.CHANGE_ID
+                }
+            }
+
+            steps {
+                sshagent(credentials: ['bugpocket-deploy']) {
+                    sh '''
+                        set -eu
+                        COMMIT_SHA="$(git rev-parse HEAD)"
+                        ssh vovus@206.223.251.206 \
+                        "bash -se -- $COMMIT_SHA" <<'REMOTE'
+                        set -eu
+
+                        COMMIT_SHA="$1"
+
+                        cd /home/vovus/apps/BugPocket
+
+                        git fetch origin master
+                        git checkout --detach "$COMMIT_SHA"
+
+                        docker compose build app
+                        docker compose up -d --no-deps app
+
+                        sleep 30
+
+                        curl -fsS http://127.0.0.1:8080/actuator/health
+REMOTE
+
+                    '''
+                }
+            }
+
+        }
+
     }
 }
