@@ -143,9 +143,9 @@ pipeline {
         stage('Approve Deploy') {
             when {
                 expression {
-                    return env.JOB_NAME == 'Vovus/BugPocket-Master/master'
-                    && env.BRANCH_NAME == 'master'
-                    && !env.CHANGE_ID
+                    return env.JOB_NAME == 'Vovus/BugPocket-Master/master' &&
+                        env.BRANCH_NAME == 'master' &&
+                        !env.CHANGE_ID
                 }
             }
 
@@ -158,9 +158,9 @@ pipeline {
         stage('Deploy') {
             when {
                 expression {
-                    return env.JOB_NAME == 'Vovus/BugPocket-Master/master'
-                    && env.BRANCH_NAME == 'master'
-                    && !env.CHANGE_ID
+                    return env.JOB_NAME == 'Vovus/BugPocket-Master/master' &&
+                        env.BRANCH_NAME == 'master' &&
+                        !env.CHANGE_ID
                 }
             }
 
