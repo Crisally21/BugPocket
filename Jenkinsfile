@@ -165,12 +165,12 @@ pipeline {
             }
 
             steps {
-                sshagent(credential: ['SSH_CREDENTIAL_ID']) {
+                sshagent(credential: ['bugpocket-deploy']) {
                     sh '''
                         set -eu
                         COMMIT_SHA="$(git rev-parse HEAD)"
                         ssh vovus@206.223.251.206 \
-                        "bash" -selectedValue -- $COMMIT_SHA" <<'REMOTE'
+                        "bash -se -- $COMMIT_SHA" <<'REMOTE'
                         set -eu
 
                         COMMIT_SHA="$1"
